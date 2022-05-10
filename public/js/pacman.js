@@ -21,6 +21,8 @@ const GF = function () {
 		this.pellets = 0;
 		this.powerPelletBlinkTimer = 0;
 
+
+
 		/**
 		 * Mostrar puntuación en pantalla
 		 */
@@ -47,12 +49,20 @@ const GF = function () {
 			coordX = Math.trunc( row / TILE_WIDTH );
 
 			//Validación para aumentar la puntuación:
-			if((this.map[coordX][coordY]=="3" || this.map[coordX][coordY]=="2") && newValue=="0"){
-				this.pellets--; //Se reduce número de píldoras
+			if((this.map[coordX][coordY] == "3" || this.map[coordX][coordY] == "2") && newValue == "0"){
+				
+				//Se reduce número de píldoras
+				this.pellets--; 
+
 				if(this.map[coordX][coordY]=="3"){
-					thisGame.points+=50; //Aumento de puntuación en caso de píldora de poder
+
+					//Aumento de puntuación en caso de píldora de poder
+					thisGame.points+=50;
+					thisGame.ghostTimer = 7;
+
 				}else{
-					thisGame.points+=10; //Aumento de puntuación en caso de píldora normal
+					//Aumento de puntuación en caso de píldora normal
+					thisGame.points+=10; 
 				}
 			}
 
@@ -195,7 +205,7 @@ const GF = function () {
 					} 
 					
 					// Si es el pacman y está sin inicializar
-					else if (player.x === -1 && player.y === -1 && valueID === 4){
+					else if (player.x === -10 && player.y === -10 && valueID === 4){
 						
 						// Sobreescribir coordenadas
 						player.y = j*TILE_HEIGHT;
@@ -271,7 +281,6 @@ const GF = function () {
 				// Gestiona la recogida de píldoras
 				case tileID.pellet:
 					thisLevel.setMapTile(col, row, '0');
-					//TODO Incrementar puntuación y reducir nivel de píldoras
 
 					break;
 
@@ -409,7 +418,19 @@ const GF = function () {
 			ctx.rect(this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
 			ctx.fill();*/
 
-            let color = ghostcolor[this.id];
+			// Color del pacman
+			let color = ghostcolor[this.id];
+
+			// Si el fantasma está asustado
+			if (thisGame.mode === Ghost.VULNERABLE){
+				color = ghostcolor[4];
+
+				// Si queda menos de 1 segundo (parpadeo)
+				if (thisGame.modeTimer < 1 && thisLevel.powerPelletBlinkTimer > 30) {
+					color = ghostcolor[5];
+				} 
+				
+			}       
 
             let center = {x: this.x + TILE_WIDTH/2, y: this.y + TILE_HEIGHT/2 + this.radius - 1};
 
@@ -647,8 +668,8 @@ const GF = function () {
 // >=test2
 	const Pacman = function () {
 		this.radius = 10;
-		this.x = -1;
-		this.y = -1;
+		this.x = -10;
+		this.y = -10;
 		this.speed = 1;
 		this.angle1 = 0.25;
 		this.angle2 = 1.75;
@@ -933,7 +954,22 @@ const GF = function () {
 		// test12
 		// TODO Tu código aquí
 		// Actualizar thisGame.ghostTimer (y el estado de los fantasmas, tal y como se especifica en el enunciado)
+		if(thisGame.ghostTimer == 7){
+			thisGame.ghostTimer = 6;
+			thisGame.modeTimer = 6;
+			thisGame.mode = Ghost.VULNERABLE;
 
+			setInterval(function(){
+
+				if(thisGame.ghostTimer == 0){
+					thisGame.mode = Ghost.NORMAL;
+					clearInterval(this);
+				}
+				thisGame.ghostTimer--;
+				thisGame.modeTimer--;
+
+			}, 1000);
+		}
 		// test14
 		// TODO Tu código aquí
 		// actualiza modeTimer...
