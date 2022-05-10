@@ -58,7 +58,7 @@ const GF = function () {
 
 					//Aumento de puntuación en caso de píldora de poder
 					thisGame.points+=50;
-					thisGame.ghostTimer = 7;
+					thisGame.modeTimer = 7;
 
 				}else{
 					//Aumento de puntuación en caso de píldora normal
@@ -219,6 +219,8 @@ const GF = function () {
 							
 							ghosts[valueID-10].x = i*TILE_WIDTH;
 							ghosts[valueID-10].y = j*TILE_HEIGHT;
+							ghosts[valueID-10].homeX = i*TILE_WIDTH;
+							ghosts[valueID-10].homeY = j*TILE_HEIGHT;
 							ghosts[valueID-10].draw();
 						}
 
@@ -393,12 +395,14 @@ const GF = function () {
 
 		this.x = -1;
 		this.y = -1;
-		this.velX = 0;
-		this.velY = 0;
+		//this.velX = 0;
+		//this.velY = 0;
 		this.speed = 1;
 
-		this.nearestRow = 0;
-		this.nearestCol = 0;
+		this.died = Ghost.NORMAL;
+
+		//this.nearestRow = 0;
+		//this.nearestCol = 0;
 
 		this.ctx = ctx;
 
@@ -425,35 +429,39 @@ const GF = function () {
 			if (thisGame.mode === Ghost.VULNERABLE){
 				color = ghostcolor[4];
 
-				// Si queda menos de 1 segundo (parpadeo)
-				if (thisGame.modeTimer < 1 && thisLevel.powerPelletBlinkTimer > 30) {
+				// Si queda menos de 1 segundo, parpadeo
+				if (thisGame.modeTimer < 2 && parseInt(thisGame.ghostTimer / 10) % 2 !== 0) {
 					color = ghostcolor[5];
 				} 
 				
-			}       
+			}
 
-            let center = {x: this.x + TILE_WIDTH/2, y: this.y + TILE_HEIGHT/2 + this.radius - 1};
+			let center = {x: this.x + TILE_WIDTH/2, y: this.y + TILE_HEIGHT/2 + this.radius - 1};
+			
+			if (this.died !== Ghost.SPECTACLES) {          
 
-            ctx.beginPath();
+				ctx.beginPath();
 
-            // Colores de la cabeza y patas
-            ctx.fillStyle = color;
-            ctx.strokeStyle = "black";
+				// Colores de la cabeza y patas
+				ctx.fillStyle = color;
+				ctx.strokeStyle = "black";
 
-            // Cabeza
-            ctx.moveTo(center.x - this.radius, center.y);
-            ctx.lineTo(center.x - this.radius, center.y - this.radius);
-            ctx.arc(center.x, center.y - this.radius, this.radius, Math.PI, 2*Math.PI);
+				// Cabeza
+				ctx.moveTo(center.x - this.radius, center.y);
+				ctx.lineTo(center.x - this.radius, center.y - this.radius);
+				ctx.arc(center.x, center.y - this.radius, this.radius, Math.PI, 2*Math.PI);
 
-            // Patas
-            ctx.arc(center.x + this.radius * 0.66, center.y, this.radius / 3, 0, Math.PI);
-            ctx.arc(center.x, center.y, this.radius / 3, 0, Math.PI);
-            ctx.arc(center.x - this.radius * 0.66, center.y, this.radius / 3, 0, Math.PI);
+				// Patas
+				ctx.arc(center.x + this.radius * 0.66, center.y, this.radius / 3, 0, Math.PI);
+				ctx.arc(center.x, center.y, this.radius / 3, 0, Math.PI);
+				ctx.arc(center.x - this.radius * 0.66, center.y, this.radius / 3, 0, Math.PI);
 
-            ctx.fill();
-            ctx.stroke();
+				ctx.fill();
+				ctx.stroke();
 
-            ctx.closePath();
+				ctx.closePath();
+			
+			}
 
             // Ojo 1
             ctx.beginPath();
@@ -492,169 +500,175 @@ const GF = function () {
             ctx.fill();
             ctx.closePath();
 
-			// test12
-			// TODO Tu código aquí
-			// Asegúrate de pintar el fantasma de un color u otro dependiendo del estado del fantasma y de thisGame.ghostTimer
-			// siguiendo el enunciado
-
-			// test13
-			// TODO Tu código aquí
-			// El cuerpo del fantasma sólo debe dibujarse cuando el estado del mismo es distinto a Ghost.SPECTACLES
-
 		}; // draw
 
 
 		this.move = function () {
-			// test10
 
-			// Obtenemos los posibles movimientos del fantasma
-			let solutions = [];
-			let lastSolution;
+			if (this.died !== Ghost.SPECTACLES) {
 
-			// Si las posiciones ya están inicializadas
-			if (this.x !== -1 && this.y !== -1) {
+				// Obtenemos los posibles movimientos del fantasma
+				let solutions = [];
+				let lastSolution;
 
-				// Si el fantasma está centrado en y
-				if (Math.trunc(this.y / TILE_HEIGHT) === Math.trunc((this.y + TILE_HEIGHT - 1) / TILE_HEIGHT)) {
-			
-					// Si no hay muros a la izquierda
-					if (!thisLevel.checkIfHitWall(this.x - this.speed, this.y, this.x, this.y)) {
-						
-						// Si actualmente se está moviendo a la derecha
-						if (this.actualOrientation === 'right') {
+				// Si las posiciones ya están inicializadas
+				if (this.x !== -1 && this.y !== -1) {
+
+					// Si el fantasma está centrado en y
+					if (Math.trunc(this.y / TILE_HEIGHT) === Math.trunc((this.y + TILE_HEIGHT - 1) / TILE_HEIGHT)) {
+				
+						// Si no hay muros a la izquierda
+						if (!thisLevel.checkIfHitWall(this.x - this.speed, this.y, this.x, this.y)) {
 							
-							// Guardar izquiera como última opción
-							lastSolution = 'left';
+							// Si actualmente se está moviendo a la derecha
+							if (this.actualOrientation === 'right') {
+								
+								// Guardar izquiera como última opción
+								lastSolution = 'left';
+
+							}
+							// Si no, añadir izquierda como posibles soluciones
+							else { solutions.push('left'); }
 
 						}
-						// Si no, añadir izquierda como posibles soluciones
-						else { solutions.push('left'); }
+
+						// Si no hay muros a la derecha
+						if (!thisLevel.checkIfHitWall(this.x + this.speed + TILE_WIDTH, this.y, this.x, this.y)) {
+
+							// Si actualmente se está moviendo a la izquierda
+							if (this.actualOrientation === 'left') {
+								
+								// Guardar derecha como última opción
+								lastSolution = 'right';
+							
+							// Si no, añadir derecha como posibles soluciones
+							} else { solutions.push('right'); }
+
+						}
 
 					}
 
-					// Si no hay muros a la derecha
-					if (!thisLevel.checkIfHitWall(this.x + this.speed + TILE_WIDTH, this.y, this.x, this.y)) {
+					// Si el fantasma está centrado en x
+					if (Math.trunc(this.x / TILE_HEIGHT) === Math.trunc((this.x + TILE_HEIGHT - 1) / TILE_HEIGHT)) {
 
-						// Si actualmente se está moviendo a la izquierda
-						if (this.actualOrientation === 'left') {
+						// Si no hay muros arriba
+						if (!thisLevel.checkIfHitWall(this.x, this.y - this.speed, this.x, this.y)) {
+								
+							// Si actualmente se está moviendo hacia abajo
+							if (this.actualOrientation === 'down') {
+								
+								// Guardar arriba como última opción
+								lastSolution = 'up';
 							
-							// Guardar derecha como última opción
-							lastSolution = 'right';
-						
-						// Si no, añadir derecha como posibles soluciones
-						} else { solutions.push('right'); }
+							// Si no, añadir arriba como posibles soluciones
+							} else { solutions.push('up'); }
+
+						}
+
+						// Si no hay muros abajo
+						if (!thisLevel.checkIfHitWall(this.x, this.y + this.speed + TILE_HEIGHT, this.x, this.y)) {
+								
+							// Si actualmente se está moviendo hacia arriba
+							if (this.actualOrientation === 'up') {
+								
+								// Guardar abajo como última opción
+								lastSolution = 'down';
+							
+							// Si no, añadir abajo como posibles soluciones
+							} else { solutions.push('down'); };
+
+						}
 
 					}
 
-				}
+					let nextOrientation;
 
-				// Si el fantasma está centrado en x
-				if (Math.trunc(this.x / TILE_HEIGHT) === Math.trunc((this.x + TILE_HEIGHT - 1) / TILE_HEIGHT)) {
+					// Si no hay posibles soluciones
+					if (solutions.length === 0) {
 
-					// Si no hay muros arriba
-					if (!thisLevel.checkIfHitWall(this.x, this.y - this.speed, this.x, this.y)) {
-							
-						// Si actualmente se está moviendo hacia abajo
-						if (this.actualOrientation === 'down') {
-							
-							// Guardar arriba como última opción
-							lastSolution = 'up';
-						
-						// Si no, añadir arriba como posibles soluciones
-						} else { solutions.push('up'); }
-
-					}
-
-					// Si no hay muros abajo
-					if (!thisLevel.checkIfHitWall(this.x, this.y + this.speed + TILE_HEIGHT, this.x, this.y)) {
-							
-						// Si actualmente se está moviendo hacia arriba
-						if (this.actualOrientation === 'up') {
-							
-							// Guardar abajo como última opción
-							lastSolution = 'down';
-						
-						// Si no, añadir abajo como posibles soluciones
-						} else { solutions.push('down'); };
-
-					}
-
-				}
-
-				let nextOrientation;
-
-				// Si no hay posibles soluciones
-				if (solutions.length === 0) {
-
-					// Escoger la última opción
-					nextOrientation = lastSolution;
-				
-				// Si no, escoger una aleatoria entre las posibles
-				} else {
-					nextOrientation = solutions[Math.floor(Math.random()*solutions.length)];
-				}
-				
-				switch(nextOrientation) {
-
-					// En caso de haber escogido izquierda
-					case 'left':
-
-						// Mover a la izquierda
-						this.x -= this.speed;
-
-						// Actualizar movimiento actual
-						this.actualOrientation = 'left';
-
-						break;
-
-					// En caso de haber escogido derecha
-					case 'right':
-
-						// Mover a la derecha
-						this.x += this.speed;
-
-						// Actualizar movimiento actual
-						this.actualOrientation = 'right';
-
-						break;
+						// Escoger la última opción
+						nextOrientation = lastSolution;
 					
-					// En caso de haber escogido arriba
-					case 'up':
-
-						// Mover hacia arriba
-						this.y -= this.speed;
-
-						// Actualizar movimiento actual
-						this.actualOrientation = 'up';
-
-						break;
+					// Si no, escoger una aleatoria entre las posibles
+					} else {
+						nextOrientation = solutions[Math.floor(Math.random()*solutions.length)];
+					}
 					
-					// En caso de haber escogido abajo
-					case 'down':
+					switch(nextOrientation) {
 
-						// Mover hacia abajo
-						this.y += this.speed;
+						// En caso de haber escogido izquierda
+						case 'left':
 
-						// Actualizar movimiento actual
-						this.actualOrientation = 'down';
+							// Mover a la izquierda
+							this.x -= this.speed;
 
-						break;
+							// Actualizar movimiento actual
+							this.actualOrientation = 'left';
 
+							break;
+
+						// En caso de haber escogido derecha
+						case 'right':
+
+							// Mover a la derecha
+							this.x += this.speed;
+
+							// Actualizar movimiento actual
+							this.actualOrientation = 'right';
+
+							break;
+						
+						// En caso de haber escogido arriba
+						case 'up':
+
+							// Mover hacia arriba
+							this.y -= this.speed;
+
+							// Actualizar movimiento actual
+							this.actualOrientation = 'up';
+
+							break;
+						
+						// En caso de haber escogido abajo
+						case 'down':
+
+							// Mover hacia abajo
+							this.y += this.speed;
+
+							// Actualizar movimiento actual
+							this.actualOrientation = 'down';
+
+							break;
+
+					}
+
+					// Control de teletransporte de los fantasmas
+					if (this.x < this.speed) { this.x = (thisLevel.map[0].length - 1)*TILE_WIDTH; }
+					else if (this.x > (thisLevel.map[0].length - 1)*TILE_WIDTH) { this.x = 0; }
+
+					if (this.y < this.speed) { this.y = (thisLevel.map.length - 2)*TILE_HEIGHT; }
+					else if (this.y > (thisLevel.map.length - 2)*TILE_HEIGHT) { this.y = 0; }
+					
+				}	
+			}
+			
+			else {
+
+				// Moverse en x hacia home
+				if (this.x > this.homeX) { this.x -= this.speed; }
+				else if (this.x < this.homeX) { this.x += this.speed; }
+
+				// Moverse en y hacia home
+				if (this.y > this.homeY) { this.y -= this.speed; }
+				else if (this.y < this.homeY) { this.y += this.speed; }
+
+				// Si ha llegado a home, volver al estado normal
+				if (this.x == this.homeX && this.y == this.homeY) {
+					this.died = Ghost.NORMAL;
 				}
 
-				// Control de teletransporte de los fantasmas
-				if (this.x < this.speed) { this.x = (thisLevel.map[0].length - 1)*TILE_WIDTH; }
-				else if (this.x > (thisLevel.map[0].length - 1)*TILE_WIDTH) { this.x = 0; }
+			}
 
-				if (this.y < this.speed) { this.y = (thisLevel.map.length - 2)*TILE_HEIGHT; }
-				else if (this.y > (thisLevel.map.length - 2)*TILE_HEIGHT) { this.y = 0; }
-				
-			}			
-
-			// test13
-			// TODO Tu código aquí
-			// Si el estado del fantasma es Ghost.SPECTACLES
-			// Mover el fantasma lo más recto posible hacia la casilla de salida
 		};
 
 	}; // fin clase Ghost
@@ -670,7 +684,7 @@ const GF = function () {
 		this.radius = 10;
 		this.x = -10;
 		this.y = -10;
-		this.speed = 1;
+		this.speed = 3;
 		this.angle1 = 0.25;
 		this.angle2 = 1.75;
 	};
@@ -834,9 +848,18 @@ const GF = function () {
 		// Comprueba que no se haya chocado con un fantasma
 		// TODO REVISAR
 		for (let i = 0; i < 4/*ghosts.length No va a funcionar porque no es un array, sino una especie de objeto JSON*/; i++) {
+			
 			if (thisLevel.checkIfHit(this.x, this.y, ghosts[i].x, ghosts[i].y, 1/*24*/)) {
-				console.log('Choque! Vidas restantes: '+thisGame.lifes);
-				thisGame.lifes--;
+
+
+				if (thisGame.mode === Ghost.VULNERABLE) {
+					ghosts[i].died = Ghost.SPECTACLES;
+				}
+
+				else if (thisGame.mode === Ghost.NORMAL) {
+					console.log('Choque! Vidas restantes: '+thisGame.lifes);
+					thisGame.lifes--;
+				}
 			}
 		}
 
@@ -951,28 +974,29 @@ const GF = function () {
 
 	// >=test12
 	const updateTimers = function () {
-		// test12
-		// TODO Tu código aquí
-		// Actualizar thisGame.ghostTimer (y el estado de los fantasmas, tal y como se especifica en el enunciado)
-		if(thisGame.ghostTimer == 7){
-			thisGame.ghostTimer = 6;
+		
+		if(thisGame.modeTimer == 7){
+			
+			thisGame.ghostTimer = 0;
 			thisGame.modeTimer = 6;
+			console.log(thisGame.modeTimer);
 			thisGame.mode = Ghost.VULNERABLE;
 
-			setInterval(function(){
+			let intervalo = setInterval(function(){
 
-				if(thisGame.ghostTimer == 0){
+				if(thisGame.modeTimer == 0){
 					thisGame.mode = Ghost.NORMAL;
-					clearInterval(this);
+					clearInterval(intervalo);
 				}
-				thisGame.ghostTimer--;
 				thisGame.modeTimer--;
 
 			}, 1000);
 		}
-		// test14
-		// TODO Tu código aquí
-		// actualiza modeTimer...
+
+		if (thisGame.ghostTimer === 60) {
+			thisGame.ghostTimer = 0;
+		} else { thisGame.ghostTimer++; }
+		
 	};
 
 	// >=test1
