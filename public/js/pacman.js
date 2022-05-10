@@ -54,7 +54,7 @@ const GF = function () {
 				//Se reduce número de píldoras
 				this.pellets--; 
 
-				if(this.map[coordX][coordY]=="3"){
+				if(this.map[coordX][coordY] == "3"){
 
 					//Aumento de puntuación en caso de píldora de poder
 					thisGame.points+=50;
@@ -129,6 +129,7 @@ const GF = function () {
 							}
 						}
 					}
+					
 					this.printMap();
 
 					this.ready = true;
@@ -205,11 +206,13 @@ const GF = function () {
 					} 
 					
 					// Si es el pacman y está sin inicializar
-					else if (player.x === -10 && player.y === -10 && valueID === 4){
+					else if (player.x === -100 && player.y === -100 && valueID === 4){
 						
 						// Sobreescribir coordenadas
 						player.y = j*TILE_HEIGHT;
 						player.x = i*TILE_WIDTH;
+						player.homeY = j*TILE_HEIGHT;
+						player.homeX = i*TILE_WIDTH;
 					}
 
 					// Si es un fantasma
@@ -253,7 +256,45 @@ const GF = function () {
 						
 		};
 
+		this.checkIfGhostHitDoor = function(x, y, ghost_id) {
 
+			let ghostX = Math.trunc(x / TILE_WIDTH);
+			let ghostY = Math.trunc( y / TILE_HEIGHT);
+
+
+			switch(thisLevel.getMapTile(ghostY, ghostX)) {
+
+				// Gestiona las puertas teletransportadoras horizontales
+				case 20:
+					
+					// Si va hacia la izquierda, aparecer en la derecha
+					if (ghostX < ghosts[ghost_id].speed) {
+						ghosts[ghost_id].x = (thisLevel.map[0].length - 1) * TILE_WIDTH;
+					
+					}
+					
+					// Si va hacia la derecha, aparecer en la izquierda
+					else { ghosts[ghost_id].x = TILE_WIDTH; }
+
+					break;
+
+
+				// Gestiona las puertas teletransportadoras verticales
+				case 21:
+					
+					// Si va hacia arriba, aparecer abajo
+					if (ghostY < ghosts[ghost_id].speed) {
+						ghosts[ghost_id].y = (thisLevel.map.length - 2) * TILE_HEIGHT;
+					
+					}
+					
+					// Si va hacia abajo, aparecer arriba
+					else { ghosts[ghost_id].y = TILE_HEIGHT; }
+
+					break;
+			}
+
+		}
 
 		// >=test11
 		this.checkIfHit = function (playerX, playerY, x, y, holgura) {
@@ -298,12 +339,12 @@ const GF = function () {
 					
 					// Si va hacia la izquierda, aparecer en la derecha
 					if (coordX < player.speed) {
-						player.x = (thisLevel.map[0].length - 1) * TILE_WIDTH;
+						player.x = (thisLevel.map[0].length - 2) * TILE_WIDTH;
 					
 					}
 					
 					// Si va hacia la derecha, aparecer en la izquierda
-					else { player.x = 0; }
+					else { player.x = TILE_WIDTH; }
 
 					break;
 
@@ -318,7 +359,7 @@ const GF = function () {
 					}
 					
 					// Si va hacia abajo, aparecer arriba
-					else { player.y = 0; }
+					else { player.y = TILE_HEIGHT; }
 
 					break;
 
@@ -373,7 +414,7 @@ const GF = function () {
 	let fps;
 
 	// Almacenará los movimientos a realizar del pacman en las keys actualOrientation y nextOrientation
-	inputStates = {};
+	inputStates = {}
 
 	// >=test10
 	const TILE_WIDTH = 24, TILE_HEIGHT = 24;
@@ -399,7 +440,7 @@ const GF = function () {
 		//this.velY = 0;
 		this.speed = 1;
 
-		this.died = Ghost.NORMAL;
+		this.state = Ghost.NORMAL;
 
 		//this.nearestRow = 0;
 		//this.nearestCol = 0;
@@ -426,7 +467,7 @@ const GF = function () {
 			let color = ghostcolor[this.id];
 
 			// Si el fantasma está asustado
-			if (thisGame.mode === Ghost.VULNERABLE){
+			if (this.state === Ghost.VULNERABLE){
 				color = ghostcolor[4];
 
 				// Si queda menos de 1 segundo, parpadeo
@@ -438,7 +479,7 @@ const GF = function () {
 
 			let center = {x: this.x + TILE_WIDTH/2, y: this.y + TILE_HEIGHT/2 + this.radius - 1};
 			
-			if (this.died !== Ghost.SPECTACLES) {          
+			if (this.state !== Ghost.SPECTACLES) {          
 
 				ctx.beginPath();
 
@@ -505,7 +546,7 @@ const GF = function () {
 
 		this.move = function () {
 
-			if (this.died !== Ghost.SPECTACLES) {
+			if (this.state !== Ghost.SPECTACLES && this.actualOrientation !== 'space') {
 
 				// Obtenemos los posibles movimientos del fantasma
 				let solutions = [];
@@ -599,6 +640,9 @@ const GF = function () {
 						// En caso de haber escogido izquierda
 						case 'left':
 
+							// Comprobar teletransporte
+							thisLevel.checkIfGhostHitDoor(this.x - this.speed, this.y, this.id);
+
 							// Mover a la izquierda
 							this.x -= this.speed;
 
@@ -609,6 +653,9 @@ const GF = function () {
 
 						// En caso de haber escogido derecha
 						case 'right':
+
+						// Comprobar teletransporte
+						thisLevel.checkIfGhostHitDoor(this.x + this.speed, this.y, this.id);
 
 							// Mover a la derecha
 							this.x += this.speed;
@@ -621,6 +668,9 @@ const GF = function () {
 						// En caso de haber escogido arriba
 						case 'up':
 
+							// Comprobar teletransporte
+							thisLevel.checkIfGhostHitDoor(this.x, this.y - this.speed, this.id);
+
 							// Mover hacia arriba
 							this.y -= this.speed;
 
@@ -632,6 +682,9 @@ const GF = function () {
 						// En caso de haber escogido abajo
 						case 'down':
 
+							// Comprobar teletransporte
+							thisLevel.checkIfGhostHitDoor(this.x, this.y + TILE_HEIGHT, this.id);
+
 							// Mover hacia abajo
 							this.y += this.speed;
 
@@ -640,19 +693,12 @@ const GF = function () {
 
 							break;
 
-					}
-
-					// Control de teletransporte de los fantasmas
-					if (this.x < this.speed) { this.x = (thisLevel.map[0].length - 1)*TILE_WIDTH; }
-					else if (this.x > (thisLevel.map[0].length - 1)*TILE_WIDTH) { this.x = 0; }
-
-					if (this.y < this.speed) { this.y = (thisLevel.map.length - 2)*TILE_HEIGHT; }
-					else if (this.y > (thisLevel.map.length - 2)*TILE_HEIGHT) { this.y = 0; }
-					
+					}					
 				}	
 			}
 			
-			else {
+			// Si está muerto
+			else if (this.state === Ghost.SPECTACLES) {
 
 				// Moverse en x hacia home
 				if (this.x > this.homeX) { this.x -= this.speed; }
@@ -664,7 +710,7 @@ const GF = function () {
 
 				// Si ha llegado a home, volver al estado normal
 				if (this.x == this.homeX && this.y == this.homeY) {
-					this.died = Ghost.NORMAL;
+					this.state = Ghost.NORMAL;
 				}
 
 			}
@@ -682,11 +728,14 @@ const GF = function () {
 // >=test2
 	const Pacman = function () {
 		this.radius = 10;
-		this.x = -10;
-		this.y = -10;
+		this.x = -100;
+		this.y = -100;
+		this.homeX = 0;
+		this.homeY = 0;
 		this.speed = 3;
 		this.angle1 = 0.25;
 		this.angle2 = 1.75;
+		this.orientation = {};
 	};
 
 	Pacman.prototype.movePacman = function(orientation){
@@ -713,10 +762,10 @@ const GF = function () {
 				// Si no hay un muros
 				if (!thisLevel.checkIfHitWall(coordX, player.y, player.x, player.y)
 					// y el pacman está centrado en y
-					&& (Math.trunc(player.y / TILE_HEIGHT) === Math.trunc((player.y + TILE_HEIGHT-1) / TILE_HEIGHT))) {
+					&& (Math.trunc(player.y / TILE_HEIGHT) === Math.trunc((player.y + TILE_HEIGHT - 1) / TILE_HEIGHT))) {
 
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(coordX, player.y, player.x + TILE_WIDTH - 5, player.y);
+						thisLevel.checkIfHitSomething(coordX, player.y, player.x + TILE_WIDTH - 10, player.y);
 
 						// Avanza a la izquierda
 						player.x -= player.speed;
@@ -740,7 +789,7 @@ const GF = function () {
 					&& (Math.trunc(player.y / TILE_HEIGHT) === Math.trunc((player.y + TILE_HEIGHT - 1) / TILE_HEIGHT))) {
 						
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(coordX, player.y, player.x + 5, player.y);
+						thisLevel.checkIfHitSomething(coordX, player.y, player.x + 10, player.y);
 
 						// Avanza a la derecha
 						player.x += player.speed;
@@ -764,7 +813,7 @@ const GF = function () {
 					&& (Math.trunc(player.x / TILE_WIDTH) === Math.trunc((player.x + TILE_WIDTH - 1) / TILE_WIDTH))) {
 						
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(player.x, coordY, player.x, player.y + TILE_HEIGHT - 5);
+						thisLevel.checkIfHitSomething(player.x, coordY, player.x, player.y + TILE_HEIGHT - 10);
 
 						// Avanza hacia arriba
 						player.y -= player.speed;
@@ -787,7 +836,7 @@ const GF = function () {
 					&& (Math.trunc(player.x / TILE_WIDTH) === Math.trunc((player.x + TILE_WIDTH - 1) / TILE_WIDTH))) {
 						
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(player.x, coordY, player.x, player.y + 5);
+						thisLevel.checkIfHitSomething(player.x, coordY, player.x, player.y + 10);
 
 						// Avanza hacia abajo
 						player.y += player.speed;
@@ -838,6 +887,7 @@ const GF = function () {
 		*	- nextOrientation: que contiene el próximo movimiento a realizar
 		*	- actualOrientation: contiene el moviento que el pacman está realizando actualmente.
 		*/
+
 			// Intenta hacer el siguiente movimiento, si no lo consigue
 		if (!this.movePacman(inputStates.nextOrientation)){
 
@@ -847,18 +897,21 @@ const GF = function () {
 
 		// Comprueba que no se haya chocado con un fantasma
 		// TODO REVISAR
-		for (let i = 0; i < 4/*ghosts.length No va a funcionar porque no es un array, sino una especie de objeto JSON*/; i++) {
+		for (let i = 0; i < numGhosts; i++) {
 			
-			if (thisLevel.checkIfHit(this.x, this.y, ghosts[i].x, ghosts[i].y, 1/*24*/)) {
+			if (thisLevel.checkIfHit(this.x, this.y, ghosts[i].x, ghosts[i].y, 10/*24*/)) {
 
 
-				if (thisGame.mode === Ghost.VULNERABLE) {
-					ghosts[i].died = Ghost.SPECTACLES;
+				if (ghosts[i].state === Ghost.VULNERABLE) {
+					ghosts[i].state = Ghost.SPECTACLES;
 				}
 
-				else if (thisGame.mode === Ghost.NORMAL) {
-					console.log('Choque! Vidas restantes: '+thisGame.lifes);
-					thisGame.lifes--;
+				else if (ghosts[i].state === Ghost.NORMAL) {				
+
+					if (--thisGame.lifes === 0) { alert("GAME OVER"); thisGame.lifes = 3;} // TODO GAME OVER
+					console.log(`Choque! Vidas restantes: ${thisGame.lifes}`);
+
+					reset();
 				}
 			}
 		}
@@ -879,20 +932,18 @@ const GF = function () {
 		*
 		*/
 
-		let orientation = {};
-
 		switch (inputStates.actualOrientation) {
 			case 'left':
-				orientation = {inferior: true, superior: true};
+				this.orientation = {inferior: true, superior: true};
 				break;
 			case 'right':
-				orientation = {inferior: false, superior: false};
+				this.orientation = {inferior: false, superior: false};
 				break;
 			case 'up':
-				orientation = {inferior: false, superior: true};
+				this.orientation = {inferior: false, superior: true};
 				break;
 			case 'down':
-				orientation = {inferior: true, superior: false};
+				this.orientation = {inferior: true, superior: false};
 				break;
 		}
 
@@ -901,12 +952,12 @@ const GF = function () {
 
 		// Pintar media circunferencia
 		ctx.beginPath();
-		ctx.arc(x+this.radius + (TILE_WIDTH/this.radius), y+this.radius + (TILE_HEIGHT/this.radius), this.radius, 0.25 * Math.PI, 1.25 * Math.PI, orientation.inferior);
+		ctx.arc(x+this.radius + (TILE_WIDTH/this.radius), y+this.radius + (TILE_HEIGHT/this.radius), this.radius, 0.25 * Math.PI, 1.25 * Math.PI, this.orientation.inferior);
 		ctx.fill();
 
 		// Pintar otra mitad
 		ctx.beginPath();
-		ctx.arc(x+this.radius + (TILE_WIDTH/this.radius), y+this.radius + (TILE_HEIGHT/this.radius), this.radius, 0.75 * Math.PI, 1.75 * Math.PI, orientation.superior);
+		ctx.arc(x+this.radius + (TILE_WIDTH/this.radius), y+this.radius + (TILE_HEIGHT/this.radius), this.radius, 0.75 * Math.PI, 1.75 * Math.PI, this.orientation.superior);
 		ctx.fill();
 
 		/* // Opción de poner el pacman cuadrado
@@ -927,7 +978,6 @@ const GF = function () {
 		ghosts[i] = new Ghost(i, canvas.getContext("2d"));
 	}
 	thisLevel.loadLevel(thisGame.getLevelNum());
-	// thisLevel.printMap();
 
 	// >=test2
 	const measureFPS = function (newTime) {
@@ -975,24 +1025,53 @@ const GF = function () {
 	// >=test12
 	const updateTimers = function () {
 		
-		if(thisGame.modeTimer == 7){
+		if(thisGame.modeTimer === 7){
 			
+			// Poner timer a 0
 			thisGame.ghostTimer = 0;
+
+			// Poner contador a 6
 			thisGame.modeTimer = 6;
-			console.log(thisGame.modeTimer);
-			thisGame.mode = Ghost.VULNERABLE;
 
+			// Por cada fantasma
+			for (let i = 0; i < numGhosts; i++) {
+
+				// Si no está muerto
+				if (ghosts[i].state !== Ghost.SPECTACLES) {
+					
+					// Cambiar estado a "vulnerable"
+					ghosts[i].state = Ghost.VULNERABLE;
+
+				}
+				
+			}
+
+			// Iniciar intervalo de 6s
 			let intervalo = setInterval(function(){
-
+				
+				// Si el tiempo llega a 0
 				if(thisGame.modeTimer == 0){
-					thisGame.mode = Ghost.NORMAL;
+
+					// Por cada fantasma
+					for (let i = 0; i < numGhosts; i++) {
+
+						// Si no está muerto
+						if (ghosts[i].state !== Ghost.SPECTACLES) {
+
+							// Cambiar estado a normal
+							ghosts[i].state = Ghost.NORMAL;
+						}
+					}
 					clearInterval(intervalo);
 				}
+
+				// Decrementar contador
 				thisGame.modeTimer--;
 
 			}, 1000);
 		}
 
+		// Si el timer llega a 60, reiniciar, sino incrementar en 1
 		if (thisGame.ghostTimer === 60) {
 			thisGame.ghostTimer = 0;
 		} else { thisGame.ghostTimer++; }
@@ -1087,39 +1166,70 @@ const GF = function () {
 
 		// Generar listener de teclas
 		document.addEventListener("keydown", (event) => {
-			switch (event.key) {
 
-				// Si se ha pulsado la tecla izquierda o 'a'
-				case "ArrowLeft":
-				case "a":
-					inputStates.nextOrientation = 'left';
-					break;
+			// Si actualmente el juego no está en pause
+			if (inputStates.actualOrientation != 'space') {
+				
+				switch (event.key) {
 
-				// Si se ha pulsado la tecla derecha o 'd'
-				case "ArrowRight":
-				case "d":
-					inputStates.nextOrientation = 'right';
-					break;
+					// Si se ha pulsado la tecla izquierda o 'a'
+					case "ArrowLeft":
+					case "a":
+						inputStates.nextOrientation = 'left';
+						break;
 
-				// Si se ha pulsado la tecla abajo o 's'
-				case "ArrowDown":
-				case "s":
-					inputStates.nextOrientation = 'down';
-					break;
+					// Si se ha pulsado la tecla derecha o 'd'
+					case "ArrowRight":
+					case "d":
+						inputStates.nextOrientation = 'right';
+						break;
 
-				// Si se ha pulsado la tecla arriba o 'w'
-				case "ArrowUp":
-				case "w":
-					inputStates.nextOrientation = 'up';
-					break;
+					// Si se ha pulsado la tecla abajo o 's'
+					case "ArrowDown":
+					case "s":
+						inputStates.nextOrientation = 'down';
+						break;
 
-				// Si se ha pulsado la tecla espacio
-				case " ":
-					inputStates.actualOrientation = 'space';
-					inputStates.nextOrientation = 'space';
-					console.log('Pacman pausado');
-					break;
+					// Si se ha pulsado la tecla arriba o 'w'
+					case "ArrowUp":
+					case "w":
+						inputStates.nextOrientation = 'up';
+						break;
+
+					// Si se ha pulsado la tecla espacio
+					case " ":
+
+						// Poner Pacman en pause
+						inputStates.nextOrientation = 'space';
+						inputStates.actualOrientation = 'space';
+
+
+						// Poner fantasmas en pause
+						for (let i = 0; i < numGhosts; i++) {
+							ghosts[i].actualOrientation = 'space';
+						}
+
+						console.log('Juego pausado');
+						
+						break;
+				}
 			}
+			
+			// Si ha pulsado espacio cuando estaba en pause
+			else if (event.key === ' ') {
+				
+				// Empezar a mover pacman
+				inputStates.actualOrientation = '';
+				inputStates.nextOrientation = '';
+							
+				// Empezar a mover fantasmas
+				for (let i = 0; i < numGhosts; i++) {
+					ghosts[i].actualOrientation = '';
+				}
+			}
+
+
+
 			Pacman.prototype.move();
 		}, false);
 
@@ -1130,18 +1240,19 @@ const GF = function () {
 	const reset = function () {
 
 		// test12
-		// TODO Tu código aquí
-		// probablemente necesites inicializar los atributos de los fantasmas
-		// (x,y,velX,velY,state, speed)
 
-		// test7
-		// TODO Tu código aquí
-		// Inicialmente Pacman debe empezar a moverse en horizontal hacia la derecha, con una velocidad igual a su atributo speed
-		// inicializa la posición inicial de Pacman tal y como indica el enunciado
+		for (let i = 0; i < numGhosts; i++){
+			ghosts[i].x = -1;
+			ghosts[i].y = -1;
+			ghosts[i].state = Ghost.NORMAL;
+		}
 
-		// test10
-		// TODO Tu código aquí
-		// Inicializa los atributos x,y, velX, velY, speed de la clase Ghost de forma conveniente
+		player.x = -100;
+		player.y = -100;
+
+		player.draw(player.homeX, player.homeY);
+
+		inputStates = {};
 
 		// >=test14
 		thisGame.setMode(thisGame.NORMAL);
