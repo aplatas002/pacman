@@ -1,75 +1,128 @@
-// >=test1
-// Variables globales de utilidad
+
+//-----------   Variables globales   -----------//
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 const w = canvas.width;
 const h = canvas.height;
 
-// >=test1
-// GAME FRAMEWORK 
+
+/*******************************************************************************
+****                             GAME_FRAMEWORK                             ****
+*******************************************************************************/
 const GF = function () {
 
+
+	/*************************************************
+	**                    Level                     **
+	*************************************************/
+
 	const Level = function (ctx) {
+
+		// Contexto
 		this.ctx = ctx;
+
+		// Dimensiones del nivel
 		this.lvlWidth = 0;
 		this.lvlHeight = 0;
 
-		this.ready = false;     //Se va a usar el siguiente flag
+		// Este flag se encarga de no devolver valores de map hasta que este esté totalmente cargado
+		this.ready = false;
 
+		// Matriz con el nivel
 		this.map = [];
 
+		// Número de pildoras en map
 		this.pellets = 0;
+
+		// Timer para el parpadeo de las píldoras de poder
 		this.powerPelletBlinkTimer = 0;
 
 
-
-		/**
-		 * Mostrar puntuación en pantalla
-		 */
+		//-------------   Display score   --------------//
 		this.displayScore = function(){
-			let puntuacion = thisGame.points;
-			let maxPunt = thisGame.highscore;
-			let vidas = thisGame.lifes;
-			ctx.font = "20px Open Sans"; //Elegimos fuente y tamaño
-			ctx.fillStyle = "#00ff00";
+
+			/*
+			*	Este método muesta la puntuación y vidas en pantalla
+			*/
+
+			//Elegimos fuente y tamaño
+			ctx.font = "20px Open Sans"; 
+
+			// Vidas
+			/*ctx.fillStyle = "#00ff00";
 			ctx.fillText(`VIDAS:`, 0, 15);
 			ctx.fillStyle = "#ffff00";
-			ctx.fillText(vidas, 66, 15);
+			ctx.fillText(thisGame.lifes, 66, 15);*/
+			ctx.fillStyle = "#00ff00";
+			ctx.fillText(`VIDAS:`, TILE_WIDTH, 16);
+
+			// Puntos
 			ctx.fillStyle = "#ff0000";
-			ctx.fillText(`HI: ${maxPunt}`, 90, 15);
-			ctx.fillText(`PUNTUACIÓN: ${puntuacion}`, 300, 15);
+			ctx.fillText(`HI: ${thisGame.highscore}`, 295, 16);
+
+
+			ctx.fillText(`${thisGame.points}`, 456, 16);
 		}
 
+		//--------------   Set map tile   --------------//
 		this.setMapTile = function (row, col, newValue) {
 			
-			
-
+			// Pasar de coordenadas del canvas a coordenadas de la matriz
 			coordY = Math.trunc( col / TILE_HEIGHT );
-
 			coordX = Math.trunc( row / TILE_WIDTH );
 
-			//Validación para aumentar la puntuación:
+			// Validación para aumentar la puntuación
 			if((this.map[coordX][coordY] == "3" || this.map[coordX][coordY] == "2") && newValue == "0"){
 				
 				//Se reduce número de píldoras
 				this.pellets--; 
 
+				// Si se ha comido una píldora de poder
 				if(this.map[coordX][coordY] == "3"){
 
-					//Aumento de puntuación en caso de píldora de poder
-					thisGame.points+=50;
+					// Aumento de puntuación
+					thisGame.points += 50;
+
+					// Activar efectos
 					thisGame.modeTimer = 7;
 
-				}else{
-					//Aumento de puntuación en caso de píldora normal
-					thisGame.points+=10; 
 				}
+				
+				// Si es una píldora normal
+				else {
+
+					//Aumento de puntuación
+					thisGame.points += 10;
+				}
+
+				// Si no quedan píldoras
+				if(this.pellets === 0){
+				
+					// Reiniciar tablero
+					reset();
+					this.loadLevel();
+
+					// Poner el timer a 0 por si la última píldora que coge es de poder, que no haga efecto
+					thisGame.modeTimer = 0;
+					
+					// TODO ARREGLAR BUG:
+					//	- Si la última píldorala coges subiendo o bajando,
+					//	  reapareces +3/-3 casillas desplazado en home (dentro del muro)
+					//	- Con el eje x no pasa poque aunque aparezca desplazado, no hay muros a los lados.
+
+					// PARCHE TEMPORAL
+					switch(inputStates.actualOrientation){
+						case 'up': player.y += player.speed; break;
+						case 'down': player.y -= player.speed; break;
+					}
+					
+				}
+
 			}
 
-
+			// Actualizar valor de la matriz
 			this.map[coordX][coordY] = newValue; //Y es cada fila, por la altura! primera componente de vector es Y!
 					//EJE Y   EJE X				 //X es cada columna!
-												//FIXME Invertir componentes
 			/*
 				________________________	
 				|    a    |      b     |
@@ -81,28 +134,37 @@ const GF = function () {
 			*/
 		};
 
+		//--------------   Get map tile   --------------//
 		this.getMapTile = function (row, col) {
 
-			if (this.ready)
+			if (this.ready) // Si map está totalmente cargado
 				return parseInt(this.map[row][col]);
 		};
 
+		//---------------   Print map   ----------------//
 		this.printMap = function () {
 
+			// Imprimir dimendiones
 			console.log('Level width: ' + this.lvlWidth);
 			console.log('Level height: ' + this.lvlHeight);
 
+			// Imprimir matriz
 			for (let i = 0; i < this.map.length; i++) {
 				console.log(this.map[i].join('\t') + '\n')
 			}
 		};
 
+		//---------------   Load level   ---------------//
 		this.loadLevel = function () {
 
 			// Leer res/levels/1.txt y guardarlo en el atributo map
-			fetch('/res/levels/1.txt')
+			fetch('/res/levels/2.txt') // TODO CAMBIAR
 				.then(respone => respone.text())
 				.then(text => {
+					
+					// Reiniciar atributos (por si acaso)
+					this.map=[];
+					this.pellets=0;
 
 					// Separar por filas
 					let rows = text.split('\n');
@@ -121,27 +183,25 @@ const GF = function () {
 							this.map.push(rows[i].split(' ').filter(e => e));
 						}
 					}
+					
+					// Contar píldoras
 					for(let i=0; i<this.map.length; i++){
 						for(let j=0; j<this.map[i].length; j++){
 							
-							if(this.map[i][j]=="2" || this.map[i][j]=="3"){
+							if(this.map[i][j] == "2" || this.map[i][j] == "3"){
 								this.pellets++;
 							}
 						}
 					}
 					
-					this.printMap();
-
+					//this.printMap();
 					this.ready = true;
 
 				});
 
-
-			// test10
-			// TODO Tu código aquí
-
 		};
 
+		//----------------   Draw map   ----------------//
 		this.drawMap = function () {
 
 			const TILE_WIDTH = thisGame.TILE_WIDTH;
@@ -150,8 +210,11 @@ const GF = function () {
 			const tileID = {
 				'door-h': 20,
 				'door-v': 21,
-				'pellet-power': 3
+				'pellet-power': 3,
+				'pellet': 2,
+				'pacman': 4
 			};
+
 			// Recorrer matriz para dibujar tablero
 			for (let i = 0; i <= thisGame.screenTileSize[1]; i++) {
 				for (let j = 0; j <= thisGame.screenTileSize[0]; j++) {
@@ -173,7 +236,7 @@ const GF = function () {
 					}
 					
 					// Si es una píldora normal
-					else if (valueID === 2){
+					else if (valueID === tileID.pellet){
 
 						// Pintar círculo blanco
 						ctx.fillStyle = '#FFFFFF';
@@ -184,7 +247,7 @@ const GF = function () {
 					}
 					
 					// Si es una píldora de poder
-					else if (valueID === 3){
+					else if (valueID === tileID["pellet-power"]){
 
 						// Únicamente se pinta si powerPelletBlink es mayor que 30
 						if (this.powerPelletBlinkTimer < 30){
@@ -206,7 +269,7 @@ const GF = function () {
 					} 
 					
 					// Si es el pacman y está sin inicializar
-					else if (player.x === -100 && player.y === -100 && valueID === 4){
+					else if (player.x === -100 && player.y === -100 && valueID === tileID.pacman){
 						
 						// Sobreescribir coordenadas
 						player.y = j*TILE_HEIGHT;
@@ -227,22 +290,56 @@ const GF = function () {
 							ghosts[valueID-10].draw();
 						}
 
-						
-
 					}
 				}
 			}
 
+			// Se muestran el número de vi
+			let posX = TILE_WIDTH *5;
+			let posY = 10;
+
+			for (let i = 0; i < 3; i++) {
+				// Color amarillo
+				ctx.fillStyle = '#FFFF00';
+
+				// Pintar media circunferencia
+				ctx.beginPath();
+				ctx.arc(posX, posY, player.radius, 0.25 * Math.PI, 1.25 * Math.PI, false);
+				ctx.fill();
+
+				// Pintar otra mitad
+				ctx.beginPath();
+				ctx.arc(posX, posY, player.radius, 0.75 * Math.PI, 1.75 * Math.PI, false);
+				ctx.fill();
+				
+				// Tachamos los pacmans según el número de vidas
+				if (i + 1 > thisGame.lifes) {
+
+					// Pintar línea roja
+					ctx.beginPath();
+					ctx.lineWidth = 5;
+					ctx.strokeStyle = "red";
+					ctx.moveTo(posX + player.radius, posY - player.radius);
+					ctx.lineTo(posX - player.radius, posY + player.radius)
+					ctx.stroke();
+					ctx.closePath();
+					ctx.lineWidth = 1;
+				}
+
+				// incrementar x para el siguiente pacman
+				posX += TILE_WIDTH*1.2;
+			}
+
 		};
 
-
+		//----------------   Is wall   -----------------//
 		this.isWall = function (row, col) {
 
 			// Devuleve true si en las coordenadas (row, col) hay un muro
 			return (thisLevel.getMapTile(row, col) > 99);
 		};
 
-
+		//-----------   Check if hit wall   ------------//
 		this.checkIfHitWall = function (possiblePlayerX, possiblePlayerY, row, col) {
 
 			// Pasar de coordenadas del canvas, a coordenadas de la matriz
@@ -256,8 +353,14 @@ const GF = function () {
 						
 		};
 
+		//--------   Check if ghost hit door   ---------//
 		this.checkIfGhostHitDoor = function(x, y, ghost_id) {
 
+			/*
+			* Este método lleva el control de teletransporte de fantasmas
+			*/
+
+			// Obtener coordenadas de la matriz
 			let ghostX = Math.trunc(x / TILE_WIDTH);
 			let ghostY = Math.trunc( y / TILE_HEIGHT);
 
@@ -268,10 +371,7 @@ const GF = function () {
 				case 20:
 					
 					// Si va hacia la izquierda, aparecer en la derecha
-					if (ghostX < ghosts[ghost_id].speed) {
-						ghosts[ghost_id].x = (thisLevel.map[0].length - 1) * TILE_WIDTH;
-					
-					}
+					if (ghostX < ghosts[ghost_id].speed) { ghosts[ghost_id].x = (thisLevel.map[0].length - 1) * TILE_WIDTH; }
 					
 					// Si va hacia la derecha, aparecer en la izquierda
 					else { ghosts[ghost_id].x = TILE_WIDTH; }
@@ -283,10 +383,7 @@ const GF = function () {
 				case 21:
 					
 					// Si va hacia arriba, aparecer abajo
-					if (ghostY < ghosts[ghost_id].speed) {
-						ghosts[ghost_id].y = (thisLevel.map.length - 2) * TILE_HEIGHT;
-					
-					}
+					if (ghostY < ghosts[ghost_id].speed) { ghosts[ghost_id].y = (thisLevel.map.length - 2) * TILE_HEIGHT; }
 					
 					// Si va hacia abajo, aparecer arriba
 					else { ghosts[ghost_id].y = TILE_HEIGHT; }
@@ -296,16 +393,15 @@ const GF = function () {
 
 		}
 
-		// >=test11
+		//--------------   Check if hit   --------------//
 		this.checkIfHit = function (playerX, playerY, x, y, holgura) {
-			// Test11
 
-			// TODO REVISAR
 			if (Math.abs(playerX - x) <= holgura && Math.abs(playerY - y) <= holgura) {
 				return true;
 			}
 		};
-
+		
+		//---------   Check if hit something   ---------//
 		this.checkIfHitSomething = function (playerX, playerY, row, col) {
 			
 			var tileID = {
@@ -323,25 +419,21 @@ const GF = function () {
 				
 				// Gestiona la recogida de píldoras
 				case tileID.pellet:
-					thisLevel.setMapTile(col, row, '0');
 
+					thisLevel.setMapTile(col, row, '0');
 					break;
 
 				// Gestiona la recogida de píldoras de poder
 				case tileID['pellet-power']:
-					thisLevel.setMapTile(coordY, coordX, '0');
-					//thisLevel.puntuacion+=50;
-					//TODO Efecto a realizar (fantasmas se asustan)
+
+					thisLevel.setMapTile(col, row, '0');
 					break;
 
 				// Gestiona las puertas teletransportadoras horizontales
 				case tileID["door-h"]:
 					
 					// Si va hacia la izquierda, aparecer en la derecha
-					if (coordX < player.speed) {
-						player.x = (thisLevel.map[0].length - 2) * TILE_WIDTH;
-					
-					}
+					if (coordX < player.speed) { player.x = (thisLevel.map[0].length - 2) * TILE_WIDTH; }
 					
 					// Si va hacia la derecha, aparecer en la izquierda
 					else { player.x = TILE_WIDTH; }
@@ -353,10 +445,7 @@ const GF = function () {
 				case tileID["door-v"]:
 
 					// Si va hacia arriba, aparecer abajo
-					if (coordY < player.speed) {
-						player.y = (thisLevel.map.length - 1) * TILE_HEIGHT;
-					
-					}
+					if (coordY < player.speed) { player.y = (thisLevel.map.length - 1) * TILE_HEIGHT; }
 					
 					// Si va hacia abajo, aparecer arriba
 					else { player.y = TILE_HEIGHT; }
@@ -370,7 +459,10 @@ const GF = function () {
 	}; // end Level
 
 
-// >=test5
+	/*------------------------------------------------
+	|                      Game                      |
+	------------------------------------------------*/
+
 	const thisGame = {
 		getLevelNum: function () {
 			return 0;
@@ -382,30 +474,31 @@ const GF = function () {
 			this.modeTimer = 0;
 		},
 
-		// >=test6
 		screenTileSize: [24, 21],
 
-		// >=test5
 		TILE_WIDTH: 24,
 		TILE_HEIGHT: 24,
 
-		// >=test12
 		ghostTimer: 0,
 
-		// >=test14
 		NORMAL: 1,
 		HIT_GHOST: 2,
 		GAME_OVER: 3,
 		WAIT_TO_START: 4,
 		modeTimer: 0,
+		WIN: 5,
 
-		//Variables pedidas en sección 11:
 		lifes: 3,
-		points:0,
-		highscore:0
+		points: 0,
+		highscore: 0
+
 	};
 
+	// Generar Level
 	const thisLevel = new Level(canvas.getContext("2d"));
+
+	// Poner modo de juego normal
+	thisGame.setMode(thisGame.NORMAL);
 
 	// variables para contar frames/s, usadas por measureFPS
 	let frameCount = 0;
@@ -414,10 +507,11 @@ const GF = function () {
 	let fps;
 
 	// Almacenará los movimientos a realizar del pacman en las keys actualOrientation y nextOrientation
-	inputStates = {}
+	inputStates = {nextOrientation: 'right'};
 
-	// >=test10
 	const TILE_WIDTH = 24, TILE_HEIGHT = 24;
+
+	// Información de los fantasmas
 	const numGhosts = 4;
 	const ghostcolor = {};
 	ghostcolor[0] = "rgba(255,	0,	  0, 255)";
@@ -427,37 +521,44 @@ const GF = function () {
 	ghostcolor[4] = "rgba( 50,	50, 255, 255)"; // blue, vulnerable ghost
 	ghostcolor[5] = "rgba(255, 255, 255, 255)"; // white, flashing ghost
 
-	// >=test10
 	// hold ghost objects
 	const ghosts = {};
 
-	// >=test10
+	/*************************************************
+	**                    Ghost                     **
+	*************************************************/
 	const Ghost = function (id, ctx) {
 
+		// Posición actual del fantasma
 		this.x = -1;
 		this.y = -1;
-		//this.velX = 0;
-		//this.velY = 0;
+		
+		// Velocidad del fantasma
 		this.speed = 1;
 
+		// Estado del fantasma
 		this.state = Ghost.NORMAL;
-
-		//this.nearestRow = 0;
-		//this.nearestCol = 0;
-
+		
+		// Contexto
 		this.ctx = ctx;
-
+		
+		// Id del fantasma (0-3)
 		this.id = id;
+
+		// Posición inical del fantasma (donde volverá al morir)
 		this.homeX = 0;
 		this.homeY = 0;
 
+		// Dirección a la que se mueve el fantasma
 		this.actualOrientation = {};
 
+		// Radio del la cabeza del fantasma
 		this.radius = 10;
 
+		//------------------   Draw   ------------------//
 		this.draw = function () {
 
-			/*// Pintar fanrasmas cuadrados
+			/*// Opción de pintar fanrasmas cuadrados
 			ctx.beginPath();
 			ctx.fillStyle = ghostcolor[this.id];
 			ctx.rect(this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
@@ -468,19 +569,22 @@ const GF = function () {
 
 			// Si el fantasma está asustado
 			if (this.state === Ghost.VULNERABLE){
-				color = ghostcolor[4];
+				color = ghostcolor[4]; // Color azul
 
 				// Si queda menos de 1 segundo, parpadeo
 				if (thisGame.modeTimer < 2 && parseInt(thisGame.ghostTimer / 10) % 2 !== 0) {
-					color = ghostcolor[5];
+					color = ghostcolor[5]; // Color blanco
 				} 
 				
 			}
 
+			// Obtener centro de la casilla
 			let center = {x: this.x + TILE_WIDTH/2, y: this.y + TILE_HEIGHT/2 + this.radius - 1};
 			
+			// Si no está muerto
 			if (this.state !== Ghost.SPECTACLES) {          
-
+				
+				// Dibujar cuerpo
 				ctx.beginPath();
 
 				// Colores de la cabeza y patas
@@ -497,6 +601,7 @@ const GF = function () {
 				ctx.arc(center.x, center.y, this.radius / 3, 0, Math.PI);
 				ctx.arc(center.x - this.radius * 0.66, center.y, this.radius / 3, 0, Math.PI);
 
+				// Pintar
 				ctx.fill();
 				ctx.stroke();
 
@@ -520,6 +625,7 @@ const GF = function () {
             ctx.fill();
             ctx.closePath();
 
+			// Posicionar ojos según la orientación
 			switch(this.actualOrientation) {
 				case 'left': center.x -= 2; break;
 				case 'right': center.x += 2; break;
@@ -544,8 +650,10 @@ const GF = function () {
 		}; // draw
 
 
+		//------------------   Move   ------------------//
 		this.move = function () {
 
+			// Si el fantasma no está muerto ni el juega pausado
 			if (this.state !== Ghost.SPECTACLES && this.actualOrientation !== 'space') {
 
 				// Obtenemos los posibles movimientos del fantasma
@@ -624,16 +732,11 @@ const GF = function () {
 
 					let nextOrientation;
 
-					// Si no hay posibles soluciones
-					if (solutions.length === 0) {
-
-						// Escoger la última opción
-						nextOrientation = lastSolution;
+					// Si no hay posibles soluciones, escoger la última opción
+					if (solutions.length === 0) { nextOrientation = lastSolution; }
 					
 					// Si no, escoger una aleatoria entre las posibles
-					} else {
-						nextOrientation = solutions[Math.floor(Math.random()*solutions.length)];
-					}
+					else { nextOrientation = solutions[Math.floor(Math.random()*solutions.length)]; }
 					
 					switch(nextOrientation) {
 
@@ -697,7 +800,7 @@ const GF = function () {
 				}	
 			}
 			
-			// Si está muerto
+			// Si el fantasma está muerto
 			else if (this.state === Ghost.SPECTACLES) {
 
 				// Moverse en x hacia home
@@ -719,25 +822,43 @@ const GF = function () {
 
 	}; // fin clase Ghost
 
-	// >=test12
-	// static variables
+	//----   Static variables (ghosts states)   ----//
 	Ghost.NORMAL = 1;
 	Ghost.VULNERABLE = 2;
 	Ghost.SPECTACLES = 3;
 
-// >=test2
+
+	/*************************************************
+	**                    Pacman                    **
+	*************************************************/
 	const Pacman = function () {
+
+		// Radio del pacman
 		this.radius = 10;
+
+		// Posición actual del Pacman (se inicializa a -100 para que no coincida con los fantasmas)
 		this.x = -100;
 		this.y = -100;
+
+		// Posición inicial del pacman (donde reaparecerá si muere)
 		this.homeX = 0;
 		this.homeY = 0;
+
+		// Velocidad del pacman
 		this.speed = 3;
+
+		// Ángulos para dibujar el pacman
 		this.angle1 = 0.25;
 		this.angle2 = 1.75;
+
+		// Orientación de las circunferencias que forman el pacman
 		this.orientation = {};
+
+		// Último movimiento antes de pausar
+		this.lastMove = '';
 	};
 
+	//--------------   Move pacman   ---------------//
 	Pacman.prototype.movePacman = function(orientation){
 
 		/*
@@ -854,33 +975,12 @@ const GF = function () {
 				break;
 				
 				
-			//}
-
-			// >=test8: introduce esta instrucción
-			// dentro del código implementado en el test7:
-			// tras actualizar this.x  y  this.y...
-			// check for collisions with other tiles (pellets, etc)
-
-			// test11
-			// TODO Tu código aquí
-			// check for collisions with the ghosts
-
-			// test13
-			// TODO Tu código aquí
-			// Si chocamos contra un fantasma y su estado es Ghost.VULNERABLE
-			// cambiar velocidad del fantasma y pasarlo a modo Ghost.SPECTACLES
-
-			// test14
-			// TODO Tu código aquí.
-			// Si chocamos contra un fantasma cuando éste esta en estado Ghost.NORMAL --> cambiar el modo de juego a HIT_GHOST
 		}
 	
 	}
 
-	// >=test3
+	//------------------   Move   ------------------//
 	Pacman.prototype.move = function () {
-
-		// test3 / test4 / test7
 
 		/*
 		* En la variable inputStates, se almacenan las keys:
@@ -888,50 +988,74 @@ const GF = function () {
 		*	- actualOrientation: contiene el moviento que el pacman está realizando actualmente.
 		*/
 
+		// Mover pacman únicamente si está inicializado
+		if (this.x !== -100 && this.y !== -100) {
+
 			// Intenta hacer el siguiente movimiento, si no lo consigue
-		if (!this.movePacman(inputStates.nextOrientation)){
+			if (!this.movePacman(inputStates.nextOrientation)){
 
-			// Sigue realizando el movimiento actual
-			this.movePacman(inputStates.actualOrientation);
-		}
+				// Sigue realizando el movimiento actual
+				this.movePacman(inputStates.actualOrientation);
+			}
+		
 
-		// Comprueba que no se haya chocado con un fantasma
-		// TODO REVISAR
-		for (let i = 0; i < numGhosts; i++) {
-			
-			if (thisLevel.checkIfHit(this.x, this.y, ghosts[i].x, ghosts[i].y, 10/*24*/)) {
+			// Por cada fantasma
+			for (let i = 0; i < numGhosts; i++) {
+				
+				// Si ha chocado
+				if (thisLevel.checkIfHit(this.x, this.y, ghosts[i].x, ghosts[i].y, 10)) {
 
+					// Si el fantasma es vulnerable
+					if (ghosts[i].state === Ghost.VULNERABLE) {
 
-				if (ghosts[i].state === Ghost.VULNERABLE) {
-					ghosts[i].state = Ghost.SPECTACLES;
-				}
+						// Matar fantasma
+						ghosts[i].state = Ghost.SPECTACLES;
 
-				else if (ghosts[i].state === Ghost.NORMAL) {				
+						// Sumar 100 puntos
+						thisGame.points += 100;
+					}
 
-					if (--thisGame.lifes === 0) { alert("GAME OVER"); thisGame.lifes = 3;} // TODO GAME OVER
-					console.log(`Choque! Vidas restantes: ${thisGame.lifes}`);
+					// Si el fantasma está normal y no se ha perdido la partida
+					else if (ghosts[i].state === Ghost.NORMAL && thisGame.mode !== thisGame.GAME_OVER) {
+						
+						// Restar una vida
+						thisGame.lifes--;
 
-					reset();
+						// Resetear partida
+						reset();
+
+						// Si era la última vida
+						if (thisGame.lifes === 0) {
+
+							// Pausar juego
+							document.dispatchEvent(new KeyboardEvent('keydown', {'key': ' '}));
+
+							// Activas GAME OVER
+							thisGame.setMode(thisGame.GAME_OVER);
+							
+						}  
+
+					}
 				}
 			}
 		}
-
 	};
 
-	// >=test2
-	// Función para pintar el Pacman
-	// En el test2 se llama drawPacman(x, y) {
+	//------------------   Draw   ------------------//
 	Pacman.prototype.draw = function (x, y) {
 
-		// Pac Man
-		// test2
-
 		/*
-		* El pacman dibujado está compuesto por 2 medias circunferencias.
+		* Método para dibujar el pacman
+		* El pacman está compuesto por 2 medias circunferencias.
 		* La orientación del pacman se realiza invirtiéndolas.
-		*
 		*/
 
+		// Si se muestra la pantalla GAME OVER, pintar pacman mirando a la derecha
+		if (thisGame.mode === thisGame.GAME_OVER) {
+			inputStates.actualOrientation = 'right';
+		} 
+
+		// Obtener posición de las circunferencias según la orientación del pacman
 		switch (inputStates.actualOrientation) {
 			case 'left':
 				this.orientation = {inferior: true, superior: true};
@@ -966,20 +1090,20 @@ const GF = function () {
 		ctx.fill();
 		*/
 
-		// ojo: en el test2 esta función se llama drawPacman(x,y))
-
 	};
 
-	// >=test5
+	// Generar pacman
 	const player = new Pacman();
 
-	// >=test10
+	// Generar fantasmas
 	for (let i = 0; i < numGhosts; i++) {
 		ghosts[i] = new Ghost(i, canvas.getContext("2d"));
 	}
+
+	// Cargar nivel
 	thisLevel.loadLevel(thisGame.getLevelNum());
 
-	// >=test2
+	// Obetener FPS
 	const measureFPS = function (newTime) {
 		// la primera ejecución tiene una condición especial
 
@@ -1004,25 +1128,12 @@ const GF = function () {
 		frameCount++;
 	};
 
-	// >=test3
-	// clears the canvas content
+	// Limpiar canvas
 	const clearCanvas = function () {
 		ctx.clearRect(0, 0, w, h);
 	};
 
-	// >=test4
-	const checkInputs = function () {
-
-		// test4
-		// TODO Tu código aquí (reestructúralo para el test7)
-
-		// test7
-		// TODO Tu código aquí
-		// LEE bien el enunciado, especialmente la nota de ATENCION que
-		// se muestra tras el test 7
-	};
-
-	// >=test12
+	// Control de efecto de las píldoras de poder
 	const updateTimers = function () {
 		
 		if(thisGame.modeTimer === 7){
@@ -1078,12 +1189,16 @@ const GF = function () {
 		
 	};
 
-	// >=test1
+
+	/*------------------------------------------------
+	|                   Main_loop                    |
+	------------------------------------------------*/
 	const mainLoop = function (time) {
 
-		// test1
+		
+		/*	
+			// Ejercicio 1
 
-		/*
 			// Color verde
 			ctx.strokeStyle = '#00FF00';
 			ctx.fillStyle = '#00FF00';
@@ -1094,81 +1209,99 @@ const GF = function () {
 			ctx.fill();
 		*/
 
-
-		// >=test2
 		// main function, called each frame
 		measureFPS(time);
 
-		// test14
-		// TODO Tu código aquí
-		// sólo en modo NORMAL
-
-		// >=test4
-		checkInputs();
-
-		// test10
 		// Mover fantasmas
 		for (let i = 0; i < numGhosts; i++) {
 			ghosts[i].move();
 		}
 
-		// >=test3
-		//ojo: en el test3 esta instrucción es pacman.move()
+		// Mover Pacman
 		player.move();
 
-
-		// test14
-		// TODO Tu código aquí
-		// en modo HIT_GHOST
-		// seguir el enunciado...
-
-		// test14
-		// TODO Tu código aquí
-		// en modo WAIT_TO_START
-		// seguir el enunciado...
-
-
-		// >=test2
-		// Clear the canvas
+		// Limpiar canvas
 		clearCanvas();
 
-		// >=test6
+		// Pintar tablero
 		thisLevel.drawMap();
 
-		// test10
 		// Pintar fantasmas
 		for (let i = 0; i < numGhosts; i++) {
 			ghosts[i].draw();
 		}
 
-		// >=test3
-		//ojo: en el test3 esta instrucción es pacman.draw()
+		// Si la partida ha finalizado (victoria o derrota), digo yo que habrá que indicárselo pantalla mediante
+		let pantalla = new Pantalla();
 
+		switch(thisGame.mode){
+
+			case thisGame.GAME_OVER:
+				pantalla.mostrarJuegoTerminado(ctx, thisGame.points);
+				break;
+
+		}
+
+		// Pintar Pacman
 		player.draw(player.x, player.y);
 
+		console.log(`pacman (x, y): (${player.x}, ${player.y})`);
 
-		//Pacman.prototype.draw(this.x, this.y);
-
-		// >=test12
+		// Actualizar timers
 		updateTimers();
 
-		thisLevel.displayScore();
+		//Llamada a actualización de puntuación
+		thisLevel.displayScore(); 
+		
 		// call the animation loop every 1/60th of second
-		// comentar esta instrucción en el test3
 		requestAnimationFrame(mainLoop);
 	};
 
-	// >=test4
-	const addListeners = function () {
 
-		// add the listener to the main, window object, and update the states
-		// test4
+	//-------------   Add_listeners   --------------//
+	const addListeners = function () {
 
 		// Generar listener de teclas
 		document.addEventListener("keydown", (event) => {
 
-			// Si actualmente el juego no está en pause
-			if (inputStates.actualOrientation != 'space') {
+			// Si ha pulsado espacio cuando estaba en pause
+			if ((inputStates.actualOrientation === 'space' || thisGame.mode !== thisGame.NORMAL) && event.key === ' ') {
+				
+				// Si el juego ha finalizado
+				if(thisGame.mode === thisGame.GAME_OVER){
+
+					// Recargar nivel
+					thisLevel.loadLevel();
+
+					// Si ha ganado con un nuevo redord, almacenarlo
+					if(thisGame.points > thisGame.highscore){
+						thisGame.highscore = thisGame.points;
+					}
+ 
+					// Volver a modo normal
+					thisGame.setMode(thisGame.NORMAL);
+					
+					// Reiniciar vidas y puntos
+					thisGame.lifes = 3;
+					thisGame.points = 0;
+
+					// Orientación derecha
+					inputStates.nextOrientation = 'right';
+
+				} else {inputStates.nextOrientation = player.lastMove;}
+
+				// Empezar a mover pacman
+				inputStates.actualOrientation = '';
+							
+				// Empezar a mover fantasmas
+				for (let i = 0; i < numGhosts; i++) {
+					ghosts[i].actualOrientation = '';
+				}
+				
+			}
+			
+			// Si actualmente el juego NO está en pause
+			else if (inputStates.actualOrientation !== 'space' &&  thisGame.mode === thisGame.NORMAL) {
 				
 				switch (event.key) {
 
@@ -1199,10 +1332,12 @@ const GF = function () {
 					// Si se ha pulsado la tecla espacio
 					case " ":
 
+						// Guardar orientación actual
+						player.lastMove = inputStates.actualOrientation;
+
 						// Poner Pacman en pause
 						inputStates.nextOrientation = 'space';
 						inputStates.actualOrientation = 'space';
-
 
 						// Poner fantasmas en pause
 						for (let i = 0; i < numGhosts; i++) {
@@ -1214,77 +1349,67 @@ const GF = function () {
 						break;
 				}
 			}
-			
-			// Si ha pulsado espacio cuando estaba en pause
-			else if (event.key === ' ') {
-				
-				// Empezar a mover pacman
-				inputStates.actualOrientation = '';
-				inputStates.nextOrientation = '';
-							
-				// Empezar a mover fantasmas
-				for (let i = 0; i < numGhosts; i++) {
-					ghosts[i].actualOrientation = '';
-				}
-			}
 
-
-
+			// Mover pacman
 			Pacman.prototype.move();
+
 		}, false);
 
 	};
 
 
-	//>=test7
+	//-----------------   Reset   ------------------//
 	const reset = function () {
 
-		// test12
-
+		// Reiniciar fantasmas
 		for (let i = 0; i < numGhosts; i++){
 			ghosts[i].x = -1;
 			ghosts[i].y = -1;
 			ghosts[i].state = Ghost.NORMAL;
 		}
+		
+		// Reiniciar posición del pacman
+		if (player.homeY === 0 && player.homeX === 0){
+			player.homeX = -100;
+			player.homeY = -100;
+		}
+		player.x = player.homeX;
+		player.y = player.homeY;
 
-		player.x = -100;
-		player.y = -100;
+		// Colocar pacman hacia la derecha
+		inputStates.nextOrientation = 'right';
 
+		// Pintar pacman en la casilla de inicio
 		player.draw(player.homeX, player.homeY);
 
-		inputStates = {};
-
-		// >=test14
-		thisGame.setMode(thisGame.NORMAL);
 	};
 
-	// >=test1
+	//-----------------   Start   ------------------//
 	const start = function () {
 
-		// >=test2
 		// adds a div for displaying the fps value
 		fpsContainer = document.createElement('div');
 		document.body.appendChild(fpsContainer).style.color = "#FFFFFF";
 
-		// >=test4
+		// Activar listerners
 		addListeners();
 
-		// >=test7
+		// Reinicar tablero
 		reset();
 
 		// start the animation
 		requestAnimationFrame(mainLoop);
 	};
 
-	// >=test1
-	//our GameFramework returns a public API visible from outside its scope
+
+	// Our GameFramework returns a public API visible from outside its scope
 	return {
 		start: start,
 
 		// solo para el test 10
-		ghost: Ghost,  // exportando Ghost para poder probarla
+		ghost: Ghost,
 
-		// solo para estos test: test12 y test13
+		// solo para los test12 y test13
 		ghosts: ghosts,
 
 		// solo para el test12
@@ -1298,8 +1423,7 @@ const GF = function () {
 	};
 };
 
-// >=test1
+// New Game Framework, start.
 var game = new GF();
 game.start();
-
 
