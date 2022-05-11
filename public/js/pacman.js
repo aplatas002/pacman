@@ -1,10 +1,31 @@
 
+
 //-----------   Variables globales   -----------//
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 const w = canvas.width;
 const h = canvas.height;
 
+//-------------   Parámetros GET   -------------//
+
+// Determinamos si hay o no dos jugadores, por parámetro GET
+let url = new URL(window.location);
+let parametro = url.searchParams.get("numJugadores"); //?numJugadores=n, siendo n el número (1 o 2)
+let parametroMultiGrupal = url.searchParams.get("online");
+let multijugador=false;
+// Si se especifican 2 jugadores
+if(parametro !== undefined && parametro == 2){
+
+	// Activar flag
+	second_player = true;
+
+}else{ second_player = false; }
+
+if(parametroMultiGrupal !== undefined){
+	setupSockets();
+	second_player=true;
+	multijugador = true;
+}
 
 /*******************************************************************************
 ****                             GAME_FRAMEWORK                             ****
@@ -49,19 +70,14 @@ const GF = function () {
 			ctx.font = "20px Open Sans"; 
 
 			// Vidas
-			/*ctx.fillStyle = "#00ff00";
-			ctx.fillText(`VIDAS:`, 0, 15);
-			ctx.fillStyle = "#ffff00";
-			ctx.fillText(thisGame.lifes, 66, 15);*/
 			ctx.fillStyle = "#00ff00";
 			ctx.fillText(`VIDAS:`, TILE_WIDTH, 16);
 
 			// Puntos
 			ctx.fillStyle = "#ff0000";
 			ctx.fillText(`HI: ${thisGame.highscore}`, 295, 16);
-
-
 			ctx.fillText(`${thisGame.points}`, 456, 16);
+
 		}
 
 		//--------------   Set map tile   --------------//
@@ -104,16 +120,17 @@ const GF = function () {
 
 					// Poner el timer a 0 por si la última píldora que coge es de poder, que no haga efecto
 					thisGame.modeTimer = 0;
-					
-					// TODO ARREGLAR BUG:
-					//	- Si la última píldorala coges subiendo o bajando,
-					//	  reapareces +3/-3 casillas desplazado en home (dentro del muro)
-					//	- Con el eje x no pasa poque aunque aparezca desplazado, no hay muros a los lados.
 
-					// PARCHE TEMPORAL
+					// Corrección de altura al recoger la última píldora
 					switch(inputStates.actualOrientation){
 						case 'up': player.y += player.speed; break;
 						case 'down': player.y -= player.speed; break;
+					}
+
+					// Corrección de altura al recoger la última píldora jugador 2
+					switch(inputStates2.actualOrientation){
+						case 'up': player2.y += player2.speed; break;
+						case 'down': player2.y -= player2.speed; break;
 					}
 					
 				}
@@ -271,18 +288,26 @@ const GF = function () {
 					// Si es el pacman y está sin inicializar
 					else if (player.x === -100 && player.y === -100 && valueID === tileID.pacman){
 						
-						// Sobreescribir coordenadas
+						// Sobreescribir coordenadas jugador 1
 						player.y = j*TILE_HEIGHT;
 						player.x = i*TILE_WIDTH;
 						player.homeY = j*TILE_HEIGHT;
 						player.homeX = i*TILE_WIDTH;
+
+						// Sobreescribir coordenadas jugador 2
+						player2.y = j*TILE_HEIGHT;
+						player2.x = i*TILE_WIDTH;
+						player2.homeY = j*TILE_HEIGHT;
+						player2.homeX = i*TILE_WIDTH;
 					}
 
 					// Si es un fantasma
 					else if (valueID <= 13 && valueID >= 10){
 						
+						// Si no está inicializado
 						if (ghosts[valueID-10].x === -1 && ghosts[valueID-10].y === -1) {
 							
+							// Sobreescribir coordenadas del fantasma
 							ghosts[valueID-10].x = i*TILE_WIDTH;
 							ghosts[valueID-10].y = j*TILE_HEIGHT;
 							ghosts[valueID-10].homeX = i*TILE_WIDTH;
@@ -294,11 +319,13 @@ const GF = function () {
 				}
 			}
 
-			// Se muestran el número de vi
+			// Se muestran el número de vidas en forma de pacmans
 			let posX = TILE_WIDTH *5;
 			let posY = 10;
 
+			// Pintar 3 pacmans
 			for (let i = 0; i < 3; i++) {
+				
 				// Color amarillo
 				ctx.fillStyle = '#FFFF00';
 
@@ -396,13 +423,14 @@ const GF = function () {
 		//--------------   Check if hit   --------------//
 		this.checkIfHit = function (playerX, playerY, x, y, holgura) {
 
+			// Devuelve true si la holgura es menor o igual que la distancia entre coordenadas
 			if (Math.abs(playerX - x) <= holgura && Math.abs(playerY - y) <= holgura) {
 				return true;
 			}
 		};
 		
 		//---------   Check if hit something   ---------//
-		this.checkIfHitSomething = function (playerX, playerY, row, col) {
+		this.checkIfHitSomething = function (playerX, playerY, row, col, pacmanID) {
 			
 			var tileID = {
 				'door-h': 20,
@@ -410,6 +438,11 @@ const GF = function () {
 				'pellet-power': 3,
 				'pellet': 2
 			};
+
+			// Establecer variable con el jugador correspondiente (1 o 2)
+			let pacman;
+			if (pacmanID === 2) { pacman = player2; }
+			else { pacman = player; }
 
 			// Obtener las coordenadas de la matriz
 			let coordX = Math.trunc(playerX / TILE_WIDTH);
@@ -433,10 +466,10 @@ const GF = function () {
 				case tileID["door-h"]:
 					
 					// Si va hacia la izquierda, aparecer en la derecha
-					if (coordX < player.speed) { player.x = (thisLevel.map[0].length - 2) * TILE_WIDTH; }
+					if (coordX < pacman.speed) { pacman.x = (thisLevel.map[0].length - 2) * TILE_WIDTH; }
 					
 					// Si va hacia la derecha, aparecer en la izquierda
-					else { player.x = TILE_WIDTH; }
+					else { pacman.x = TILE_WIDTH; }
 
 					break;
 
@@ -445,10 +478,10 @@ const GF = function () {
 				case tileID["door-v"]:
 
 					// Si va hacia arriba, aparecer abajo
-					if (coordY < player.speed) { player.y = (thisLevel.map.length - 1) * TILE_HEIGHT; }
+					if (coordY < pacman.speed) { pacman.y = (thisLevel.map.length - 1) * TILE_HEIGHT; }
 					
 					// Si va hacia abajo, aparecer arriba
-					else { player.y = TILE_HEIGHT; }
+					else { pacman.y = TILE_HEIGHT; }
 
 					break;
 
@@ -464,11 +497,11 @@ const GF = function () {
 	------------------------------------------------*/
 
 	const thisGame = {
+
 		getLevelNum: function () {
 			return 0;
 		},
 
-		// >=test14
 		setMode: function (mode) {
 			this.mode = mode;
 			this.modeTimer = 0;
@@ -486,7 +519,6 @@ const GF = function () {
 		GAME_OVER: 3,
 		WAIT_TO_START: 4,
 		modeTimer: 0,
-		WIN: 5,
 
 		lifes: 3,
 		points: 0,
@@ -508,6 +540,7 @@ const GF = function () {
 
 	// Almacenará los movimientos a realizar del pacman en las keys actualOrientation y nextOrientation
 	inputStates = {nextOrientation: 'right'};
+	inputStates2 = {nextOrientation: 'left'};
 
 	const TILE_WIDTH = 24, TILE_HEIGHT = 24;
 
@@ -831,7 +864,7 @@ const GF = function () {
 	/*************************************************
 	**                    Pacman                    **
 	*************************************************/
-	const Pacman = function () {
+	const Pacman = function (id) {
 
 		// Radio del pacman
 		this.radius = 10;
@@ -856,6 +889,9 @@ const GF = function () {
 
 		// Último movimiento antes de pausar
 		this.lastMove = '';
+
+		// ID del pacman (jugador1 o jugador2)
+		this.id = id;
 	};
 
 	//--------------   Move pacman   ---------------//
@@ -878,21 +914,24 @@ const GF = function () {
 			case "left":
 			
 				// Obtenemos siguiente posición
-				coordX = player.x - player.speed;
+				coordX = this.x - this.speed;
 
 				// Si no hay un muros
-				if (!thisLevel.checkIfHitWall(coordX, player.y, player.x, player.y)
+				if (!thisLevel.checkIfHitWall(coordX, this.y, this.x, this.y)
 					// y el pacman está centrado en y
-					&& (Math.trunc(player.y / TILE_HEIGHT) === Math.trunc((player.y + TILE_HEIGHT - 1) / TILE_HEIGHT))) {
+					&& (Math.trunc(this.y / TILE_HEIGHT) === Math.trunc((this.y + TILE_HEIGHT - 1) / TILE_HEIGHT))) {
 
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(coordX, player.y, player.x + TILE_WIDTH - 10, player.y);
+						thisLevel.checkIfHitSomething(coordX, this.y, this.x + TILE_WIDTH - 10, this.y, this.id);
 
 						// Avanza a la izquierda
-						player.x -= player.speed;
+						this.x -= this.speed;
 
 						// Actualizar orientación actual
-						inputStates.actualOrientation = orientation;
+						if (this.id === 2) {
+							inputStates2.actualOrientation = orientation;
+						}
+						else { inputStates.actualOrientation = orientation; }
 						return true;
 
 				}
@@ -902,21 +941,24 @@ const GF = function () {
 			case "right":
 			
 				// Obtenemos siguiente posición
-				coordX = player.x + player.speed + TILE_WIDTH;
+				coordX = this.x + this.speed + TILE_WIDTH;
 
 				// Si no hay un muros
-				if (!thisLevel.checkIfHitWall(coordX, player.y, player.x, player.y)
+				if (!thisLevel.checkIfHitWall(coordX, this.y, this.x, this.y)
 					// Y el pacman está centrado en y
-					&& (Math.trunc(player.y / TILE_HEIGHT) === Math.trunc((player.y + TILE_HEIGHT - 1) / TILE_HEIGHT))) {
+					&& (Math.trunc(this.y / TILE_HEIGHT) === Math.trunc((this.y + TILE_HEIGHT - 1) / TILE_HEIGHT))) {
 						
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(coordX, player.y, player.x + 10, player.y);
+						thisLevel.checkIfHitSomething(coordX, this.y, this.x + 10, this.y, this.id);
 
 						// Avanza a la derecha
-						player.x += player.speed;
+						this.x += this.speed;
 
 						// Actualizar orientación actual
-						inputStates.actualOrientation = orientation;
+						if (this.id === 2) {
+							inputStates2.actualOrientation = orientation;
+						}
+						else { inputStates.actualOrientation = orientation; }
 						return true;
 
 				}
@@ -926,21 +968,24 @@ const GF = function () {
 			case "up":
 
 				// Obtenemos siguiente posición
-				coordY = player.y - player.speed;
+				coordY = this.y - this.speed;
 				
 				// Si no hay un muros y el pacman cabe
-				if (!thisLevel.checkIfHitWall(player.x, coordY, player.x, player.y)
+				if (!thisLevel.checkIfHitWall(this.x, coordY, this.x, this.y)
 					// y el pacman está centrado en x
-					&& (Math.trunc(player.x / TILE_WIDTH) === Math.trunc((player.x + TILE_WIDTH - 1) / TILE_WIDTH))) {
+					&& (Math.trunc(this.x / TILE_WIDTH) === Math.trunc((this.x + TILE_WIDTH - 1) / TILE_WIDTH))) {
 						
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(player.x, coordY, player.x, player.y + TILE_HEIGHT - 10);
+						thisLevel.checkIfHitSomething(this.x, coordY, this.x, this.y + TILE_HEIGHT - 10, this.id);
 
 						// Avanza hacia arriba
-						player.y -= player.speed;
+						this.y -= this.speed;
 
 						// Actualizar orientación actual
-						inputStates.actualOrientation = orientation;
+						if (this.id === 2) {
+							inputStates2.actualOrientation = orientation;
+						}
+						else { inputStates.actualOrientation = orientation; }
 						return true;
 				}
 				break;
@@ -949,21 +994,24 @@ const GF = function () {
 			case "down":
 
 				// Obtenemos siguiente posición
-				coordY = player.y + player.speed + TILE_HEIGHT;
+				coordY = this.y + this.speed + TILE_HEIGHT;
 
 				// Si no hay un muros y el pacman cabe
-				if (!thisLevel.checkIfHitWall(player.x, coordY, player.x, player.y)
+				if (!thisLevel.checkIfHitWall(this.x, coordY, this.x, this.y)
 					// y el pacman está centrado en x
-					&& (Math.trunc(player.x / TILE_WIDTH) === Math.trunc((player.x + TILE_WIDTH - 1) / TILE_WIDTH))) {
+					&& (Math.trunc(this.x / TILE_WIDTH) === Math.trunc((this.x + TILE_WIDTH - 1) / TILE_WIDTH))) {
 						
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(player.x, coordY, player.x, player.y + 10);
+						thisLevel.checkIfHitSomething(this.x, coordY, this.x, this.y + 10, this.id);
 
 						// Avanza hacia abajo
-						player.y += player.speed;
+						this.y += this.speed;
 
 						// Actualizar orientación actual
-						inputStates.actualOrientation = orientation;
+						if (this.id === 2) {
+							inputStates2.actualOrientation = orientation;
+						}
+						else { inputStates.actualOrientation = orientation; }
 						return true;
 				}
 				break;
@@ -991,12 +1039,29 @@ const GF = function () {
 		// Mover pacman únicamente si está inicializado
 		if (this.x !== -100 && this.y !== -100) {
 
-			// Intenta hacer el siguiente movimiento, si no lo consigue
-			if (!this.movePacman(inputStates.nextOrientation)){
+			// Si el id del pacman es 2
+			if (this.id === 2) {
+				
+				// Intenta hacer el siguiente movimiento, si no lo consigue
+				if (!this.movePacman(inputStates2.nextOrientation)){
 
-				// Sigue realizando el movimiento actual
-				this.movePacman(inputStates.actualOrientation);
+					// Sigue realizando el movimiento actual
+					this.movePacman(inputStates2.actualOrientation);
+				}
+
+			} 
+			
+			// Si el id del pacman es 1
+			else {
+
+				// Intenta hacer el siguiente movimiento, si no lo consigue
+				if (!this.movePacman(inputStates.nextOrientation)){
+
+					// Sigue realizando el movimiento actual
+					this.movePacman(inputStates.actualOrientation);
+				}	
 			}
+			
 		
 
 			// Por cada fantasma
@@ -1053,10 +1118,16 @@ const GF = function () {
 		// Si se muestra la pantalla GAME OVER, pintar pacman mirando a la derecha
 		if (thisGame.mode === thisGame.GAME_OVER) {
 			inputStates.actualOrientation = 'right';
+			inputStates2.actualOrientation = 'right';
 		} 
 
+		// Obtener inputStates del jugador correspondiente (1 o 2)
+		let input;
+		if (this.id === 2) { input = inputStates2; }
+		else { input = inputStates; }
+		
 		// Obtener posición de las circunferencias según la orientación del pacman
-		switch (inputStates.actualOrientation) {
+		switch (input.actualOrientation) {
 			case 'left':
 				this.orientation = {inferior: true, superior: true};
 				break;
@@ -1093,7 +1164,8 @@ const GF = function () {
 	};
 
 	// Generar pacman
-	const player = new Pacman();
+	const player = new Pacman(1);
+	const player2 = new Pacman(2);
 
 	// Generar fantasmas
 	for (let i = 0; i < numGhosts; i++) {
@@ -1175,10 +1247,14 @@ const GF = function () {
 					}
 					clearInterval(intervalo);
 				}
-
-				// Decrementar contador
-				thisGame.modeTimer--;
-
+				
+				// Si el juego NO está pausado
+				if (inputStates.actualOrientation !== 'space'){
+					
+					// Decrementar contador
+					thisGame.modeTimer--;
+				}
+				
 			}, 1000);
 		}
 
@@ -1219,6 +1295,7 @@ const GF = function () {
 
 		// Mover Pacman
 		player.move();
+		if (second_player) { player2.move(); }
 
 		// Limpiar canvas
 		clearCanvas();
@@ -1231,7 +1308,7 @@ const GF = function () {
 			ghosts[i].draw();
 		}
 
-		// Si la partida ha finalizado (victoria o derrota), digo yo que habrá que indicárselo pantalla mediante
+		// Si la partida ha finalizado (victoria o derrota), habrá que indicárselo pantalla mediante
 		let pantalla = new Pantalla();
 
 		switch(thisGame.mode){
@@ -1244,21 +1321,20 @@ const GF = function () {
 
 		// Pintar Pacman
 		player.draw(player.x, player.y);
-
-		console.log(`pacman (x, y): (${player.x}, ${player.y})`);
+		if (second_player) { player2.draw(player2.x, player2.y); }
 
 		// Actualizar timers
 		updateTimers();
 
 		//Llamada a actualización de puntuación
 		thisLevel.displayScore(); 
-		
+
 		// call the animation loop every 1/60th of second
 		requestAnimationFrame(mainLoop);
 	};
 
 
-	//-------------   Add_listeners   --------------//
+	//-------------   Add listeners   --------------//
 	const addListeners = function () {
 
 		// Generar listener de teclas
@@ -1285,13 +1361,26 @@ const GF = function () {
 					thisGame.lifes = 3;
 					thisGame.points = 0;
 
-					// Orientación derecha
+					// Orientación derecha pacman
 					inputStates.nextOrientation = 'right';
 
-				} else {inputStates.nextOrientation = player.lastMove;}
+					// Orientación izquierda pacman 2
+					inputStates2.nextOrientation = 'left'; 
+
+				} 
+				
+				else {
+
+					// Al quitar el pause, restaurar última acción
+					inputStates.nextOrientation = player.lastMove;
+					inputStates2.nextOrientation = player2.lastMove;
+				}
 
 				// Empezar a mover pacman
 				inputStates.actualOrientation = '';
+
+				// Empezar a mover pacman 2
+				inputStates2.actualOrientation = '';
 							
 				// Empezar a mover fantasmas
 				for (let i = 0; i < numGhosts; i++) {
@@ -1302,31 +1391,50 @@ const GF = function () {
 			
 			// Si actualmente el juego NO está en pause
 			else if (inputStates.actualOrientation !== 'space' &&  thisGame.mode === thisGame.NORMAL) {
+				if(multijugador){
+					enviarDatos(event.key);
+				}
 				
 				switch (event.key) {
 
-					// Si se ha pulsado la tecla izquierda o 'a'
+					// Si se ha pulsado la tecla izquierda
 					case "ArrowLeft":
-					case "a":
 						inputStates.nextOrientation = 'left';
 						break;
 
-					// Si se ha pulsado la tecla derecha o 'd'
+					// Si se ha pulsado la tecla derecha
 					case "ArrowRight":
-					case "d":
 						inputStates.nextOrientation = 'right';
 						break;
 
-					// Si se ha pulsado la tecla abajo o 's'
+					// Si se ha pulsado la tecla abajo
 					case "ArrowDown":
-					case "s":
 						inputStates.nextOrientation = 'down';
 						break;
 
-					// Si se ha pulsado la tecla arriba o 'w'
+					// Si se ha pulsado la tecla arriba
 					case "ArrowUp":
-					case "w":
 						inputStates.nextOrientation = 'up';
+						break;
+
+					// Si se ha pulsado la tecla izquierda
+					case "a":
+						inputStates2.nextOrientation = 'left';
+						break;
+
+					// Si se ha pulsado la tecla derecha
+					case "d":
+						inputStates2.nextOrientation = 'right';
+						break;
+
+					// Si se ha pulsado la tecla abajo
+					case "s":
+						inputStates2.nextOrientation = 'down';
+						break;
+
+					// Si se ha pulsado la tecla arriba
+					case "w":
+						inputStates2.nextOrientation = 'up';
 						break;
 
 					// Si se ha pulsado la tecla espacio
@@ -1334,10 +1442,15 @@ const GF = function () {
 
 						// Guardar orientación actual
 						player.lastMove = inputStates.actualOrientation;
+						player2.lastMove = inputStates2.actualOrientation;
 
 						// Poner Pacman en pause
 						inputStates.nextOrientation = 'space';
 						inputStates.actualOrientation = 'space';
+
+						// Poner Pacman 2 en pause
+						inputStates2.nextOrientation = 'space';
+						inputStates2.actualOrientation = 'space';
 
 						// Poner fantasmas en pause
 						for (let i = 0; i < numGhosts; i++) {
@@ -1351,12 +1464,14 @@ const GF = function () {
 			}
 
 			// Mover pacman
-			Pacman.prototype.move();
+			//Pacman.prototype.move();
+			player.move();
+			if (second_player) { player2.move(); }
+			
 
 		}, false);
 
 	};
-
 
 	//-----------------   Reset   ------------------//
 	const reset = function () {
@@ -1373,14 +1488,25 @@ const GF = function () {
 			player.homeX = -100;
 			player.homeY = -100;
 		}
+
+		if (player2.homeY === 0 && player2.homeX === 0){
+			player2.homeX = 100;
+			player2.homeY = -100;
+		}
+
+
 		player.x = player.homeX;
 		player.y = player.homeY;
+		player2.x = player2.homeX;
+		player2.y = player2.homeY;
 
 		// Colocar pacman hacia la derecha
 		inputStates.nextOrientation = 'right';
+		inputStates2.nextOrientation = 'left';
 
 		// Pintar pacman en la casilla de inicio
 		player.draw(player.homeX, player.homeY);
+		player2.draw(player2.homeX, player2.homeY);
 
 	};
 

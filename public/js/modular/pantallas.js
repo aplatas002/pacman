@@ -11,7 +11,7 @@ class Pantalla{
         ctx.fillText("Press Spacebar to restart", sizeWidth/35, sizeHeight-50);
     }
 
-    /*mostrarHasGanado = function(ctx){
+    mostrarHasGanado = function(ctx){
 
         ctx.font = "bold 80px Lucida Console"; //Elegimos fuente y tamaño
 	    ctx.fillStyle = "#ffff00";
@@ -20,5 +20,5 @@ class Pantalla{
 		ctx.fillText("YOU WIN", sizeWidth/8.5, sizeHeight/5);
         ctx.font = "bold 30px Lucida Console";
         ctx.fillText("Press Spacebar to restart", sizeWidth/35, sizeHeight-50);
-    }*/
+    }
 }

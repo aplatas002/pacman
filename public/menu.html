@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+	<head>
+		<link rel="stylesheet" href="css/index.css">
+		<link rel="stylesheet" href="js/qunit/qunit-1.16.0.css">
+		<style>
+			html, body{
+				margin: 0px;
+				padding: 0px;
+			}
+			#menu{
+				background-color: #ffa500;
+				width: 600px;
+				 height:600px;
+				 display: flex;
+				 flex-direction: column;
+			}
+			h1{
+				color: #FFFF00;
+				height: 10%;
+			}
+
+			h1:hover{
+				cursor: default;
+			}
+
+			h1, p{
+				font-family: 'Lucida Console';
+				font-weight: bold;
+				text-align: center;
+				font-size: 50px;
+				margin: 0px;
+				padding: 0px;
+			}
+			#menus{
+				height: 90%;
+				display: flex;
+				flex-direction: column;
+			}
+			.contenedor{
+				margin: 20px;
+				background-color: #0000FF;
+				color: #FFFFFF;
+				padding: 3%;
+				height: 100%;
+				cursor: pointer;
+				/*border: 10px solid white;*/
+			}
+
+			.contenedor:hover{
+				background-color: #190477;
+			}
+
+			.contenedor p{
+				margin: auto;
+				/*border: 10px solid green;*/
+			}
+		</style>
+		<script>
+			window.onload=function(){
+				console.log("Iniciado");
+				let contenedores = document.getElementsByClassName("contenedor");
+				document.getElementById("jugar").addEventListener("click", jugar, true);
+				document.getElementById("multijugador_local").addEventListener("click", multijugadorLocal, true);
+				document.getElementById("online").addEventListener("click", function(){
+					result = window.prompt("Nombre de la sala");
+					console.log(result);
+				},true);
+				document.getElementById("acercade").addEventListener("click", function(){
+					alert("Créditos");
+					//TODO Créditos de musica
+					/*
+					"Your Call" Kevin MacLeod (incompetech.com)
+					Licensed under Creative Commons: By Attribution 4.0 License
+					http://creativecommons.org/licenses/by/4.0/
+					*/
+				},true);
+			};
+
+			function jugar(){
+				console.log("jugar");
+				loadAudio("./res/audio/fondo.mp3").then( audio => audio.play());
+			}
+
+			function multijugadorLocal(){
+				console.log("multi1");
+			}
+
+			function loadAudio(url){
+				return new Promise((resolve)=>{
+					console.log("Veamos");
+					let audio = new Audio();
+					//El evento en el tipo "Audio" es 'loadeddata'
+					audio.addEventListener('loadeddata',()=>resolve(audio), true);
+					audio.src=url;
+				});
+			}
+		</script>
+	</head>
+	<body bgcolor="black">
+		<div id="menu">
+			<h1>Pacman</h1>
+			<div id="menus">
+				<div class="contenedor" id="jugar"><p>Play</p></div>
+				<div class="contenedor" id="multijugador_local"><p>2-player</p></div>
+				<div class="contenedor" id="online"><p>Online</p></div>
+				<div class="contenedor" id="acercade"><p>About</p></div>
+			</div>
+			
+		</div>
+	</body>
+</html>
