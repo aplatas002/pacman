@@ -16,7 +16,7 @@ let power_pellet;
 let finish_vulnerable;
 let ghost_dead;
 
-
+let intervalo;
 /*******************************************************************************
 ****                             GAME_FRAMEWORK                             ****
 *******************************************************************************/
@@ -1161,35 +1161,10 @@ const GF = function () {
 						
 						else {
 
-							// Pausar juego
-							document.dispatchEvent(new KeyboardEvent('keydown', {'key': ' '}));
-
-							let timer = 2;
-
-							// Iniciar intervalo de 6s
-							let intervalo = setInterval(function(){
-								
-								// Si el tiempo llega a 0
-								if(timer === 0){
-
-									document.dispatchEvent(new KeyboardEvent('keydown', {'key': ' '}));
-									clearInterval(intervalo);
-								}
-
-								timer -= 1;
-							
-							}, 1000);
-
 							// Reproducir sonido de pacman muerto
-							pacman_dead.pause();
-							pacman_dead.duration = 0;
+							pacman_dead.currentTime = 0;
 							pacman_dead.play();
 						}
-
-						
-
-						
-
 					}
 				}
 			}
@@ -1300,10 +1275,10 @@ const GF = function () {
 		
 		if(thisGame.modeTimer === 7){
 			
-			// Poner timer a 0
+			// Poner timer a 0 (control de parpadeo de fantasmas)
 			thisGame.ghostTimer = 0;
 
-			// Poner contador a 6
+			// Poner contador a 6 (control de segundos)
 			thisGame.modeTimer = 6;
 
 			// Por cada fantasma
@@ -1318,15 +1293,21 @@ const GF = function () {
 				}
 				
 			}
+			
+			if(intervalo != undefined){
+				
+				clearInterval(intervalo);
+			}
 
-			// Iniciar intervalo de 6s
-			let intervalo = setInterval(function(){
+			intervalo = setInterval(function(){
 				
 				// Si el tiempo llega a 0
-				if(thisGame.modeTimer == 0){
+				if(thisGame.modeTimer <= 0){
 
 					// Por cada fantasma
 					for (let i = 0; i < numGhosts; i++) {
+						temporizadorActivo=false;
+						clearInterval(intervalo);
 
 						// Si no está muerto
 						if (ghosts[i].state !== Ghost.SPECTACLES) {
@@ -1335,7 +1316,6 @@ const GF = function () {
 							ghosts[i].state = Ghost.NORMAL;
 						}
 					}
-					clearInterval(intervalo);
 				}
 				
 				// Si el juego NO está pausado
@@ -1346,6 +1326,8 @@ const GF = function () {
 				}
 				
 			}, 1000);
+			
+			
 		}
 
 		// Si el timer llega a 60, reiniciar, sino incrementar en 1
@@ -1417,7 +1399,9 @@ const GF = function () {
 		updateTimers();
 
 		//Llamada a actualización de puntuación
-		thisLevel.displayScore(); 
+		thisLevel.displayScore();
+
+		console.log(thisGame.modeTimer);
 
 		// call the animation loop every 1/60th of second
 		requestAnimationFrame(mainLoop);
@@ -1584,7 +1568,6 @@ const GF = function () {
 			player2.homeY = -100;
 		}
 
-
 		player.x = player.homeX;
 		player.y = player.homeY;
 		player2.x = player2.homeX;
@@ -1593,6 +1576,10 @@ const GF = function () {
 		// Colocar pacman hacia la derecha
 		inputStates.nextOrientation = 'right';
 		inputStates2.nextOrientation = 'left';
+
+		setTimeout(() => {
+			console.log("1 Segundo esperado")
+		  }, 1000);
 
 		// Pintar pacman en la casilla de inicio
 		player.draw(player.homeX, player.homeY);
