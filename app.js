@@ -58,39 +58,60 @@
  //let socketPlayer1 = null;
  //let socketPlayer2 = null;
  
-const mapa = [];
+const mapa = new Map();
  // the socket can be a phone or a desktop
  realtimeListener.on('connection', function (socket) {
  
      // receives a connect message from a desktop (for this example, we will only have one)
      socket.on("remote-player-connect", function(nomSala){
-        let salaEncontrada=false; 
-        for(let i=0; i<mapa.length; i++){ //pobre Koldo G., y pensar que tengo un notable en EDA...
-            if(mapa[i].sala==nomSala){
-                console.log("Sala existente encontrada");
-                salaEncontrada=true;
-                if(mapa[i].emisor==undefined){
-                    mapa[i].receptor=socket;
-                    console.log("Receptor encontrado");
+        let sala = mapa.get(nomSala); 
+        //Existe una sala con el nombre
+        if(sala!=undefined){
+                console.log("Sala "+nomSala+" encontrada");
+                if(sala.receptor==undefined){
+                    //Hay emisor pero no receptor
+                    sala.receptor=socket;
                     socket.emit('respuesta-conexion', 'receptor');
-                }else if (mapa[i].receptor==undefined){
-                    mapa[i].emisor=socket;
+                    console.log("Asignado receptor a sala "+nomSala);
+                    sala.emisor.emit('remote-player-connect');
+                }else if(sala.emisor==undefined){
+                    //Hay receptor pero no emisor (caso muy atípico)
+                    sala.emisor=socket;
                     socket.emit('respuesta-conexion', 'emisor');
+                    console.log("[EXCP] Asignado emisor a sala "+nomSala);
                 }else{
+                    //Existe emisor y receptor
+                    console.log("La sala está llena");
                     socket.emit("sala-llena");
                 }
-            }
-        }
-
-        if(!salaEncontrada){
-            console.log("Sala no encontrada");
+            
+        }else{
+            //No hay sala con ese nombre
+            console.log("Sala "+nomSala+" no encontrada");
             let datos={
-                sala: nomSala,
                 emisor: socket
             }
+            console.log("Asignado emisor a sala "+nomSala);
             socket.emit('respuesta-conexion', 'emisor');
-            mapa.push(datos);
+            mapa.set(nomSala,datos);
         }
+
+        socket.on("remote-player-move", (datos)=>{
+            let sala = mapa.get(datos.nomSala);
+            if(datos.tipoUsuario=="emisor"){
+                sala.receptor.emit("remote-player-move", datos);
+            }else if(datos.tipoUsuario=="receptor"){
+                sala.emisor.emit("remote-player-move", datos);
+            }
+        });
+
+        socket.on("remote-ghost-move", (datos)=>{
+            let sala = mapa.get(datos.nomSala);
+            if(sala.receptor!=undefined){
+                sala.receptor.emit("remote-ghost-move", datos);
+            }
+        });
+        
      });
      //socket.set("heartbeat timeout", 10);
      //socket.set("heartbeat interval", 5);

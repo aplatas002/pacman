@@ -6,15 +6,6 @@ const ctx = canvas.getContext("2d");
 const w = canvas.width;
 const h = canvas.height;
 
-// Sonidos
-let finish_level;
-let game_over;
-let hit_wall;
-let pacman_dead;
-let pellet;
-let power_pellet;
-let finish_vulnerable;
-let ghost_dead;
 
 let intervalo;
 /*******************************************************************************
@@ -54,16 +45,6 @@ const GF = function () {
 				audio.src = url;
 			});
 		}
-
-		// Cargar sonidos en variables globales
-		loadAudio("./res/audio/finish_level.wav").then( audio => finish_level = audio);
-		loadAudio("./res/audio/game_over.wav").then( audio => game_over = audio);
-		loadAudio("./res/audio/hit_wall.wav").then( audio => hit_wall = audio);
-		loadAudio("./res/audio/pacman_dead.wav").then( audio => pacman_dead = audio);
-		loadAudio("./res/audio/pellet.wav").then( audio => pellet = audio);
-		loadAudio("./res/audio/power_pellet.wav").then( audio => power_pellet = audio);
-		loadAudio("./res/audio/finish_vulnerable.wav").then( audio => finish_vulnerable = audio);
-		loadAudio("./res/audio/ghost_dead.wav").then( audio => ghost_dead = audio);
 
 
 	/*************************************************
@@ -136,8 +117,10 @@ const GF = function () {
 					thisGame.modeTimer = 7;
 
 					// Sonido de píldora de poder
-					power_pellet.currentTime = 0;
-					power_pellet.play();
+					if (!multijudor) {
+						power_pellet.currentTime = 0;
+						power_pellet.play();
+					}
 
 				}
 				
@@ -148,8 +131,10 @@ const GF = function () {
 					thisGame.points += 10;
 
 					// Sonido de píldora normal
-					pellet.currentTime = 0;
-					pellet.play();
+					if (!multijugador) {
+						pellet.currentTime = 0;
+						pellet.play();
+					}
 				}
 
 				// Si no quedan píldoras
@@ -250,6 +235,11 @@ const GF = function () {
 						for(let j=0; j<this.map[i].length; j++){
 							
 							if(this.map[i][j] == "2" || this.map[i][j] == "3"){
+								
+								if (multijugador) {
+									this.map[i][j] = 0;
+								}
+
 								this.pellets++;
 							}
 						}
@@ -307,7 +297,7 @@ const GF = function () {
 
 					}
 					
-					// Si es una píldora de poder
+					// Si es una píldora de poder (se desactivan las píldoras de poder en modo remoto)
 					else if (valueID === tileID["pellet-power"]){
 
 						// Únicamente se pinta si powerPelletBlink es mayor que 30
@@ -627,7 +617,7 @@ const GF = function () {
 		this.homeY = 0;
 
 		// Dirección a la que se mueve el fantasma
-		this.actualOrientation = {};
+		this.actualOrientation = "";
 
 		// Radio del la cabeza del fantasma
 		this.radius = 10;
@@ -1131,8 +1121,10 @@ const GF = function () {
 						// Sonido del comer fantasma
 						//ghost_dead.pause();
 						//ghost_dead.duration = 0;
-						ghost_dead.currentTime = 0;
-						ghost_dead.play();
+						if (!multijugador) {
+							ghost_dead.currentTime = 0;
+							ghost_dead.play();
+						}
 
 					}
 
@@ -1162,7 +1154,9 @@ const GF = function () {
 						else {
 
 							// Reproducir sonido de pacman muerto
-							pacman_dead.currentTime = 0;
+							if (!multijugador) {
+								pacman_dead.currentTime = 0;
+							}
 							pacman_dead.play();
 						}
 					}
@@ -1342,67 +1336,86 @@ const GF = function () {
 	|                   Main_loop                    |
 	------------------------------------------------*/
 	const mainLoop = function (time) {
+		//console.log("Multijugador: "+multijugador);
+		//console.log("en remoto: "+conexionJugadorRemoto);
+		if((multijugador && conexionJugadorRemoto) || !multijugador){
+			
+				/*	
+				// Ejercicio 1
 
+				// Color verde
+				ctx.strokeStyle = '#00FF00';
+				ctx.fillStyle = '#00FF00';
+
+				ctx.beginPath();
+				// Circulos completos (0, 2*PI) en posición random de radio 5
+				ctx.arc(Math.floor(Math.random() * (w)), Math.floor(Math.random() * (h)), 5, 0, 2 * Math.PI);
+				ctx.fill();
+			*/
+
+			// main function, called each frame
+			measureFPS(time);
+
+			// Mover fantasmas
+			for (let i = 0; i < numGhosts; i++) {
+				if((multijugador && isEmisor) || !multijugador){
+					ghosts[i].move();
+					if(multijugador){
+						enviarDatosFantasmas(ghosts[i].x, ghosts[i].y, ghosts[i].actualOrientation, i);
+					}
+				}else{
+					ghosts[i].x=ghostsPosition[i].x;
+					ghosts[i].y=ghostsPosition[i].y;
+					ghosts[i].actualOrientation=ghostsPosition[i].orientation;
+				}
+				
+			}
+			if(multijugador){
+				enviarDatos(player.x, player.y, inputStates.actualOrientation);
+				inputStates2.actualOrientation=orientacionRemoteUser;
+				player2.x=remoteUserX;
+				player2.y=remoteUserY;
+				//console.log(`RM (X,Y) (${remoteUserX}, ${remoteUserY})`);
+			}
+
+			// Mover Pacman
+			player.move();
+			if (second_player) { player2.move(); }
+			
+			
+			// Limpiar canvas
+			clearCanvas();
+
+			// Pintar tablero
+			thisLevel.drawMap();
+
+			// Pintar fantasmas
+			for (let i = 0; i < numGhosts; i++) {
+				ghosts[i].draw();
+			}
+
+			// Si la partida ha finalizado (victoria o derrota), habrá que indicárselo pantalla mediante
+			let pantalla = new Pantalla();
+
+			switch(thisGame.mode){
+
+				case thisGame.GAME_OVER:
+					pantalla.mostrarJuegoTerminado(ctx, thisGame.points);
+					break;
+
+			}
+
+			// Pintar Pacman
+			player.draw(player.x, player.y);
+			if (second_player) { player2.draw(player2.x, player2.y); }
+
+			// Actualizar timers
+			updateTimers();
+
+			//Llamada a actualización de puntuación
+			thisLevel.displayScore();
 		
-		/*	
-			// Ejercicio 1
-
-			// Color verde
-			ctx.strokeStyle = '#00FF00';
-			ctx.fillStyle = '#00FF00';
-
-			ctx.beginPath();
-			// Circulos completos (0, 2*PI) en posición random de radio 5
-			ctx.arc(Math.floor(Math.random() * (w)), Math.floor(Math.random() * (h)), 5, 0, 2 * Math.PI);
-			ctx.fill();
-		*/
-
-		// main function, called each frame
-		measureFPS(time);
-
-		// Mover fantasmas
-		/*for (let i = 0; i < numGhosts; i++) {
-			ghosts[i].move();
-		}*/
-
-		// Mover Pacman
-		player.move();
-		if (second_player) { player2.move(); }
-
-		// Limpiar canvas
-		clearCanvas();
-
-		// Pintar tablero
-		thisLevel.drawMap();
-
-		// Pintar fantasmas
-		for (let i = 0; i < numGhosts; i++) {
-			ghosts[i].draw();
 		}
-
-		// Si la partida ha finalizado (victoria o derrota), habrá que indicárselo pantalla mediante
-		let pantalla = new Pantalla();
-
-		switch(thisGame.mode){
-
-			case thisGame.GAME_OVER:
-				pantalla.mostrarJuegoTerminado(ctx, thisGame.points);
-				break;
-
-		}
-
-		// Pintar Pacman
-		player.draw(player.x, player.y);
-		if (second_player) { player2.draw(player2.x, player2.y); }
-
-		// Actualizar timers
-		updateTimers();
-
-		//Llamada a actualización de puntuación
-		thisLevel.displayScore();
-
-		console.log(thisGame.modeTimer);
-
 		// call the animation loop every 1/60th of second
 		requestAnimationFrame(mainLoop);
 	};
@@ -1465,9 +1478,6 @@ const GF = function () {
 			
 			// Si actualmente el juego NO está en pause
 			else if (inputStates.actualOrientation !== 'space' &&  thisGame.mode === thisGame.NORMAL) {
-				if(multijugador){
-					enviarDatos(event.key);
-				}
 				
 				switch (event.key) {
 
@@ -1576,10 +1586,6 @@ const GF = function () {
 		// Colocar pacman hacia la derecha
 		inputStates.nextOrientation = 'right';
 		inputStates2.nextOrientation = 'left';
-
-		setTimeout(() => {
-			console.log("1 Segundo esperado")
-		  }, 1000);
 
 		// Pintar pacman en la casilla de inicio
 		player.draw(player.homeX, player.homeY);

@@ -57,20 +57,38 @@
 			}
 		</style>
 		<script>
+			function loadAudio(url){
+				return new Promise((resolve)=>{
+					let audio = new Audio();
+					//El evento en el tipo "Audio" es 'loadeddata'
+					audio.addEventListener('loadeddata',()=>resolve(audio), true);
+					audio.src=url;
+				});
+			}
 			window.onload=function(){
+				// Cargar sonidos en variables globales
+				loadAudio("./res/audio/game_over.wav").then( audio => game_over = audio);
+				loadAudio("./res/audio/finish_level.wav").then( audio => finish_level = audio);
+				loadAudio("./res/audio/hit_wall.wav").then( audio => hit_wall = audio);
+				loadAudio("./res/audio/pacman_dead.wav").then( audio => pacman_dead = audio);
+				loadAudio("./res/audio/pellet.wav").then( audio => pellet = audio);
+				loadAudio("./res/audio/power_pellet.wav").then( audio => power_pellet = audio);
+				loadAudio("./res/audio/finish_vulnerable.wav").then( audio => finish_vulnerable = audio);
+				loadAudio("./res/audio/ghost_dead.wav").then( audio => ghost_dead = audio);
+				
 				console.log("Iniciado");
 				let contenedores = document.getElementsByClassName("contenedor");
 				document.getElementById("jugar").addEventListener("click", jugar, true);
 				document.getElementById("multijugador_local").addEventListener("click", multijugadorLocal, true);
 				document.getElementById("online").addEventListener("click", function(){
 					result = window.prompt("Nombre de la sala");
-					console.log(result);
 					document.getElementById("menu").style="display: none";
 					var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?online=true';
     				window.history.pushState({path:newurl},'',newurl);
+					
 					var game = new GF();
 					game.start();
-					loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
+					//loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
 				},true);
 				document.getElementById("acercade").addEventListener("click", function(){
 					alert("Créditos");
@@ -100,16 +118,6 @@
 				var game = new GF();
 				game.start();
 				loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
-			}
-
-			function loadAudio(url){
-				return new Promise((resolve)=>{
-					console.log("Veamos");
-					let audio = new Audio();
-					//El evento en el tipo "Audio" es 'loadeddata'
-					audio.addEventListener('loadeddata',()=>resolve(audio), true);
-					audio.src=url;
-				});
 			}
 		</script>
 	</head>
