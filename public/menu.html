@@ -65,6 +65,12 @@
 				document.getElementById("online").addEventListener("click", function(){
 					result = window.prompt("Nombre de la sala");
 					console.log(result);
+					document.getElementById("menu").style="display: none";
+					var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?online=true';
+    				window.history.pushState({path:newurl},'',newurl);
+					var game = new GF();
+					game.start();
+					loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
 				},true);
 				document.getElementById("acercade").addEventListener("click", function(){
 					alert("Créditos");
@@ -78,12 +84,22 @@
 			};
 
 			function jugar(){
-				console.log("jugar");
-				loadAudio("./res/audio/fondo.mp3").then( audio => audio.play());
+				//console.log("jugar");
+				//loadAudio("./res/audio/fondo.mp3").then( audio => audio.play());
+				//window.location.href="index.html";
+				document.getElementById("menu").style="display: none";
+				var game = new GF();
+				game.start();
+				loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
 			}
 
 			function multijugadorLocal(){
-				console.log("multi1");
+				document.getElementById("menu").style="display: none";
+				var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?numJugadores=2';
+    			window.history.pushState({path:newurl},'',newurl);
+				var game = new GF();
+				game.start();
+				loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
 			}
 
 			function loadAudio(url){
@@ -108,5 +124,14 @@
 			</div>
 			
 		</div>
+		<canvas id="canvas" width="600" height="600"></canvas>
+		<p>
+		<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+		<script src="js/sprite.js"></script>
+		<script src="js/resources.js"></script>
+		<script src="js/howler.js"></script>
+		<script src="js/modular/pantallas.js"></script>
+		<script src="js/modular/sockets.js"></script>
+		<script src="js/pacman.js"></script>
 	</body>
 </html>

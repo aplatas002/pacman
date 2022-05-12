@@ -6,31 +6,64 @@ const ctx = canvas.getContext("2d");
 const w = canvas.width;
 const h = canvas.height;
 
-//-------------   Parámetros GET   -------------//
+// Sonidos
+let finish_level;
+let game_over;
+let hit_wall;
+let pacman_dead;
+let pellet;
+let power_pellet;
+let finish_vulnerable;
+let ghost_dead;
 
-// Determinamos si hay o no dos jugadores, por parámetro GET
-let url = new URL(window.location);
-let parametro = url.searchParams.get("numJugadores"); //?numJugadores=n, siendo n el número (1 o 2)
-let parametroMultiGrupal = url.searchParams.get("online");
-let multijugador=false;
-// Si se especifican 2 jugadores
-if(parametro !== undefined && parametro == 2){
-
-	// Activar flag
-	second_player = true;
-
-}else{ second_player = false; }
-
-if(parametroMultiGrupal !== undefined){
-	setupSockets();
-	second_player=true;
-	multijugador = true;
-}
 
 /*******************************************************************************
 ****                             GAME_FRAMEWORK                             ****
 *******************************************************************************/
 const GF = function () {
+
+		//-------------   Parámetros GET   -------------//
+
+		// Determinamos si hay o no dos jugadores, por parámetro GET
+		let url = new URL(window.location);
+		let parametro = url.searchParams.get("numJugadores"); //?numJugadores=n, siendo n el número (1 o 2)
+		let parametroMultiGrupal = url.searchParams.get("online");
+		let multijugador=false;
+		// Si se especifican 2 jugadores
+		if(parametro != undefined && parametro == 2){
+
+			// Activar flag
+			second_player = true;
+
+		}else{ second_player = false; }
+
+		if(parametroMultiGrupal != undefined){
+			setupSockets();
+			second_player=true;
+			multijugador = true;
+		}
+
+		//---------------   Load music   ---------------//
+		
+		function loadAudio(url){
+
+			return new Promise((resolve)=>{
+				let audio = new Audio();
+				//El evento en el tipo "Audio" es 'loadeddata'
+				audio.addEventListener('loadeddata',()=>resolve(audio), true);
+				audio.src = url;
+			});
+		}
+
+		// Cargar sonidos en variables globales
+		loadAudio("./res/audio/finish_level.wav").then( audio => finish_level = audio);
+		loadAudio("./res/audio/game_over.wav").then( audio => game_over = audio);
+		loadAudio("./res/audio/hit_wall.wav").then( audio => hit_wall = audio);
+		loadAudio("./res/audio/pacman_dead.wav").then( audio => pacman_dead = audio);
+		loadAudio("./res/audio/pellet.wav").then( audio => pellet = audio);
+		loadAudio("./res/audio/power_pellet.wav").then( audio => power_pellet = audio);
+		loadAudio("./res/audio/finish_vulnerable.wav").then( audio => finish_vulnerable = audio);
+		loadAudio("./res/audio/ghost_dead.wav").then( audio => ghost_dead = audio);
 
 
 	/*************************************************
@@ -102,6 +135,10 @@ const GF = function () {
 					// Activar efectos
 					thisGame.modeTimer = 7;
 
+					// Sonido de píldora de poder
+					power_pellet.currentTime = 0;
+					power_pellet.play();
+
 				}
 				
 				// Si es una píldora normal
@@ -109,6 +146,10 @@ const GF = function () {
 
 					//Aumento de puntuación
 					thisGame.points += 10;
+
+					// Sonido de píldora normal
+					pellet.currentTime = 0;
+					pellet.play();
 				}
 
 				// Si no quedan píldoras
@@ -117,6 +158,9 @@ const GF = function () {
 					// Reiniciar tablero
 					reset();
 					this.loadLevel();
+
+					// Audio de final del nivel
+					finish_level.play();
 
 					// Poner el timer a 0 por si la última píldora que coge es de poder, que no haga efecto
 					thisGame.modeTimer = 0;
@@ -175,7 +219,7 @@ const GF = function () {
 		this.loadLevel = function () {
 
 			// Leer res/levels/1.txt y guardarlo en el atributo map
-			fetch('/res/levels/2.txt') // TODO CAMBIAR
+			fetch('/res/levels/1.txt') // TODO CAMBIAR
 				.then(respone => respone.text())
 				.then(text => {
 					
@@ -607,7 +651,8 @@ const GF = function () {
 				// Si queda menos de 1 segundo, parpadeo
 				if (thisGame.modeTimer < 2 && parseInt(thisGame.ghostTimer / 10) % 2 !== 0) {
 					color = ghostcolor[5]; // Color blanco
-				} 
+					finish_vulnerable.play();
+				}
 				
 			}
 
@@ -1058,7 +1103,11 @@ const GF = function () {
 				if (!this.movePacman(inputStates.nextOrientation)){
 
 					// Sigue realizando el movimiento actual
-					this.movePacman(inputStates.actualOrientation);
+					this.movePacman(inputStates.actualOrientation) 
+						
+						//hit_wall.play();
+					
+					
 				}	
 			}
 			
@@ -1078,6 +1127,13 @@ const GF = function () {
 
 						// Sumar 100 puntos
 						thisGame.points += 100;
+
+						// Sonido del comer fantasma
+						//ghost_dead.pause();
+						//ghost_dead.duration = 0;
+						ghost_dead.currentTime = 0;
+						ghost_dead.play();
+
 					}
 
 					// Si el fantasma está normal y no se ha perdido la partida
@@ -1097,8 +1153,42 @@ const GF = function () {
 
 							// Activas GAME OVER
 							thisGame.setMode(thisGame.GAME_OVER);
+
+							// Reproducir sonido de Game Over
+							game_over.play();
 							
-						}  
+						}
+						
+						else {
+
+							// Pausar juego
+							document.dispatchEvent(new KeyboardEvent('keydown', {'key': ' '}));
+
+							let timer = 2;
+
+							// Iniciar intervalo de 6s
+							let intervalo = setInterval(function(){
+								
+								// Si el tiempo llega a 0
+								if(timer === 0){
+
+									document.dispatchEvent(new KeyboardEvent('keydown', {'key': ' '}));
+									clearInterval(intervalo);
+								}
+
+								timer -= 1;
+							
+							}, 1000);
+
+							// Reproducir sonido de pacman muerto
+							pacman_dead.pause();
+							pacman_dead.duration = 0;
+							pacman_dead.play();
+						}
+
+						
+
+						
 
 					}
 				}
@@ -1289,9 +1379,9 @@ const GF = function () {
 		measureFPS(time);
 
 		// Mover fantasmas
-		for (let i = 0; i < numGhosts; i++) {
+		/*for (let i = 0; i < numGhosts; i++) {
 			ghosts[i].move();
-		}
+		}*/
 
 		// Mover Pacman
 		player.move();
@@ -1367,7 +1457,7 @@ const GF = function () {
 					// Orientación izquierda pacman 2
 					inputStates2.nextOrientation = 'left'; 
 
-				} 
+				}
 				
 				else {
 
@@ -1550,6 +1640,6 @@ const GF = function () {
 };
 
 // New Game Framework, start.
-var game = new GF();
-game.start();
+//var game = new GF();
+//game.start();
 
