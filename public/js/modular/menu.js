@@ -51,6 +51,7 @@ window.onload=function(){
                 s.onload=()=>{
                     var game = new GF();
                     game.start();
+                    document.getElementById("vuelta").classList.remove("hidden");
                 };
                 
             }else if(evt=="receptor"){
@@ -60,6 +61,7 @@ window.onload=function(){
                 s.onload=()=>{
                     var game = new GFRemote();
                     game.start();
+                    document.getElementById("vuelta").classList.remove("hidden");
                 };
             }
         });
@@ -72,6 +74,7 @@ window.onload=function(){
     document.getElementById("acercade").addEventListener("click", function(){
         var myWindow = window.open("about.html", "PacmanAbout", 'width=600, height=600');
     },true);
+    document.getElementById("vuelta").addEventListener("click", volver, true);
 };
 
 function jugar(){
@@ -86,6 +89,7 @@ function jugar(){
     s.onload=()=>{
         var game = new GF();
         game.start();
+        document.getElementById("vuelta").classList.remove("hidden");
         if(configMusica){
             loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
         }
@@ -103,6 +107,7 @@ function multijugadorLocal(){
     s.onload=()=>{
         var game = new GF();
         game.start();
+        document.getElementById("vuelta").classList.remove("hidden");
         if(configMusica){
             loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
         }
@@ -116,4 +121,8 @@ function mostrarConfig(){
     myWindow.addEventListener("beforeunload", function(e){
         window.location.reload();
      }, false);
+}
+
+function volver(){
+    window.location="index.html";
 }
