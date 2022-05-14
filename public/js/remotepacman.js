@@ -6,34 +6,25 @@ const ctx = canvas.getContext("2d");
 const w = canvas.width;
 const h = canvas.height;
 
-// Intervalo para gestionar el tiempo de los fantasmas asustados
-let intervalo;
 
+let intervalo;
 /*******************************************************************************
 ****                             GAME_FRAMEWORK                             ****
 *******************************************************************************/
-const GF = function () {
+const GFRemote = function () {
 
 		//-------------   Parámetros GET   -------------//
 
 		// Determinamos si hay o no dos jugadores, por parámetro GET
 		let url = new URL(window.location);
-		let parametro = url.searchParams.get("numJugadores"); //?numJugadores=n, siendo n el número (1 o 2)
 		let parametroMultiGrupal = url.searchParams.get("online");
 		let multijugador=false;
 		// Si se especifican 2 jugadores
-		if(parametro != undefined && parametro == 2){
-
-			// Activar flag
-			second_player = true;
-
-		}else{ second_player = false; }
-
-		if(parametroMultiGrupal != undefined){
-			//setupSockets();
-			second_player=true;
-			multijugador = true;
-		}
+		// Activar flag
+	    let second_player = true;
+		setupSockets();
+		multijugador = true;
+		
 
 		//---------------   Load music   ---------------//
 		
@@ -106,32 +97,22 @@ const GF = function () {
 			if((this.map[coordX][coordY] == "3" || this.map[coordX][coordY] == "2") && newValue == "0"){
 				
 				//Se reduce número de píldoras
-				this.pellets--; 
+				//this.pellets--; 
 
 				// Si se ha comido una píldora de poder
 				if(this.map[coordX][coordY] == "3"){
 
 					// Aumento de puntuación
-					thisGame.points += 50;
+					/*thisGame.points += 50;
 
 					// Activar efectos
 					thisGame.modeTimer = 7;
 
-					// Enviar sonido si es modo multijugador
-					if(multijugador){
-						enviarSonido("power_pellet");
-					}
-					
-					// Si el sonido está activado en la configuración
-					if (configSFX) {
-
-						// Resetear por si se comen 2 píldoras seguidas
+					// Sonido de píldora de poder
+					if (!multijugador) {
 						power_pellet.currentTime = 0;
-
-						// Sonido de píldora de poder
 						power_pellet.play();
-					}
-
+					}*/
 
 				}
 				
@@ -139,48 +120,30 @@ const GF = function () {
 				else {
 
 					//Aumento de puntuación
-					thisGame.points += 10;
+					//thisGame.points += 10;
 
-					// Enviar sonido si es modo multijugador
-					if(multijugador){
-						enviarSonido("pellet");
-					}
-					
-					// Si el sonido está activado en la configuración
-					if (configSFX) {
-
-						// Resetear por si se comen 2 píldoras seguidas
+					// Sonido de píldora normal
+					/*if (!multijugador) {
 						pellet.currentTime = 0;
-
-						// Sonido de píldora normal
 						pellet.play();
-					}
+					}*/
 				}
 
 				// Si no quedan píldoras
 				if(this.pellets === 0){
 				
 					// Reiniciar tablero
-					reset();
-					this.loadLevel();
+					//reset();
+					//this.loadLevel();
 
 					// Audio de final del nivel
-					if(multijugador){
-						enviarSonido("finish_level");
-					}
-					
-					// Si el sonido está activado en la configuración
-					if (configSFX) {
-
-						// Sonido de victoria
-						finish_level.play();
-					}
+					//finish_level.play();
 
 					// Poner el timer a 0 por si la última píldora que coge es de poder, que no haga efecto
-					thisGame.modeTimer = 0;
+					//thisGame.modeTimer = 0;
 
 					// Corrección de altura al recoger la última píldora
-					switch(inputStates.actualOrientation){
+					/*switch(inputStates.actualOrientation){
 						case 'up': player.y += player.speed; break;
 						case 'down': player.y -= player.speed; break;
 					}
@@ -189,7 +152,7 @@ const GF = function () {
 					switch(inputStates2.actualOrientation){
 						case 'up': player2.y += player2.speed; break;
 						case 'down': player2.y -= player2.speed; break;
-					}
+					}*/
 					
 				}
 
@@ -212,7 +175,7 @@ const GF = function () {
 		//--------------   Get map tile   --------------//
 		this.getMapTile = function (row, col) {
 
-			if (this.ready) // Si map está totalmente cargado
+			//if (this.ready) // Si map está totalmente cargado
 				return parseInt(this.map[row][col]);
 		};
 
@@ -230,7 +193,7 @@ const GF = function () {
 		};
 
 		//---------------   Load level   ---------------//
-		this.loadLevel = function () {
+		/*this.loadLevel = function () {
 
 			// Leer res/levels/1.txt y guardarlo en el atributo map
 			fetch('/res/levels/1.txt') // TODO CAMBIAR
@@ -259,26 +222,13 @@ const GF = function () {
 						}
 					}
 					
-					// Contar píldoras
-					for(let i=0; i<this.map.length; i++){
-						for(let j=0; j<this.map[i].length; j++){
-							
-							if(this.map[i][j] == "2" || this.map[i][j] == "3"){
-
-								this.pellets++;
-							}
-						}
-					}
 					
-					// Mostrar matriz por consola
-					this.printMap();
-
-					// Flag de matriz cargada a true
+					//this.printMap();
 					this.ready = true;
 
 				});
 
-		};
+		};*/
 
 		//----------------   Draw map   ----------------//
 		this.drawMap = function () {
@@ -668,17 +618,7 @@ const GF = function () {
 
 				// Si queda menos de 1 segundo, parpadeo
 				if (thisGame.modeTimer < 2 && parseInt(thisGame.ghostTimer / 10) % 2 !== 0) {
-					if(multijugador){
-						enviarSonido("finish_vulnerable");
-					}
 					color = ghostcolor[5]; // Color blanco
-
-					// Si el sonido está activado en la configuración
-					if (configSFX) {
-
-						// Sonido de estado vulnerable acabándose
-						finish_vulnerable.play();
-					}
 				}
 				
 			}
@@ -772,7 +712,7 @@ const GF = function () {
 					if (Math.trunc(this.y / TILE_HEIGHT) === Math.trunc((this.y + TILE_HEIGHT - 1) / TILE_HEIGHT)) {
 				
 						// Si no hay muros a la izquierda
-						if (!thisLevel.checkIfHitWall(this.x - this.speed, this.y, this.x, this.y)) {
+						/*if (!thisLevel.checkIfHitWall(this.x - this.speed, this.y, this.x, this.y)) {
 							
 							// Si actualmente se está moviendo a la derecha
 							if (this.actualOrientation === 'right') {
@@ -784,10 +724,10 @@ const GF = function () {
 							// Si no, añadir izquierda como posibles soluciones
 							else { solutions.push('left'); }
 
-						}
+						}*/
 
 						// Si no hay muros a la derecha
-						if (!thisLevel.checkIfHitWall(this.x + this.speed + TILE_WIDTH, this.y, this.x, this.y)) {
+						/*if (!thisLevel.checkIfHitWall(this.x + this.speed + TILE_WIDTH, this.y, this.x, this.y)) {
 
 							// Si actualmente se está moviendo a la izquierda
 							if (this.actualOrientation === 'left') {
@@ -798,7 +738,7 @@ const GF = function () {
 							// Si no, añadir derecha como posibles soluciones
 							} else { solutions.push('right'); }
 
-						}
+						}*/
 
 					}
 
@@ -806,7 +746,7 @@ const GF = function () {
 					if (Math.trunc(this.x / TILE_HEIGHT) === Math.trunc((this.x + TILE_HEIGHT - 1) / TILE_HEIGHT)) {
 
 						// Si no hay muros arriba
-						if (!thisLevel.checkIfHitWall(this.x, this.y - this.speed, this.x, this.y)) {
+						/*if (!thisLevel.checkIfHitWall(this.x, this.y - this.speed, this.x, this.y)) {
 								
 							// Si actualmente se está moviendo hacia abajo
 							if (this.actualOrientation === 'down') {
@@ -817,10 +757,10 @@ const GF = function () {
 							// Si no, añadir arriba como posibles soluciones
 							} else { solutions.push('up'); }
 
-						}
+						}*/
 
 						// Si no hay muros abajo
-						if (!thisLevel.checkIfHitWall(this.x, this.y + this.speed + TILE_HEIGHT, this.x, this.y)) {
+						/*if (!thisLevel.checkIfHitWall(this.x, this.y + this.speed + TILE_HEIGHT, this.x, this.y)) {
 								
 							// Si actualmente se está moviendo hacia arriba
 							if (this.actualOrientation === 'up') {
@@ -831,17 +771,21 @@ const GF = function () {
 							// Si no, añadir abajo como posibles soluciones
 							} else { solutions.push('down'); };
 
-						}
+						}*/
 
 					}
 
 					let nextOrientation;
 
 					// Si no hay posibles soluciones, escoger la última opción
-					if (solutions.length === 0) { nextOrientation = lastSolution; }
+					if (solutions.length === 0) { 
+						//nextOrientation = lastSolution; 
+					}
 					
 					// Si no, escoger una aleatoria entre las posibles
-					else { nextOrientation = solutions[Math.floor(Math.random()*solutions.length)]; }
+					else { 
+						//nextOrientation = solutions[Math.floor(Math.random()*solutions.length)]; 
+					}
 					
 					switch(nextOrientation) {
 
@@ -849,13 +793,13 @@ const GF = function () {
 						case 'left':
 
 							// Comprobar teletransporte
-							thisLevel.checkIfGhostHitDoor(this.x - this.speed, this.y, this.id);
+							//thisLevel.checkIfGhostHitDoor(this.x - this.speed, this.y, this.id);
 
 							// Mover a la izquierda
-							this.x -= this.speed;
+							//this.x -= this.speed;
 
 							// Actualizar movimiento actual
-							this.actualOrientation = 'left';
+							//this.actualOrientation = 'left';
 
 							break;
 
@@ -863,13 +807,13 @@ const GF = function () {
 						case 'right':
 
 						// Comprobar teletransporte
-						thisLevel.checkIfGhostHitDoor(this.x + this.speed, this.y, this.id);
+						//thisLevel.checkIfGhostHitDoor(this.x + this.speed, this.y, this.id);
 
 							// Mover a la derecha
-							this.x += this.speed;
+							//this.x += this.speed;
 
 							// Actualizar movimiento actual
-							this.actualOrientation = 'right';
+							//this.actualOrientation = 'right';
 
 							break;
 						
@@ -877,13 +821,13 @@ const GF = function () {
 						case 'up':
 
 							// Comprobar teletransporte
-							thisLevel.checkIfGhostHitDoor(this.x, this.y - this.speed, this.id);
+							//thisLevel.checkIfGhostHitDoor(this.x, this.y - this.speed, this.id);
 
 							// Mover hacia arriba
-							this.y -= this.speed;
+							//this.y -= this.speed;
 
 							// Actualizar movimiento actual
-							this.actualOrientation = 'up';
+							//this.actualOrientation = 'up';
 
 							break;
 						
@@ -891,13 +835,13 @@ const GF = function () {
 						case 'down':
 
 							// Comprobar teletransporte
-							thisLevel.checkIfGhostHitDoor(this.x, this.y + TILE_HEIGHT, this.id);
+							//thisLevel.checkIfGhostHitDoor(this.x, this.y + TILE_HEIGHT, this.id);
 
 							// Mover hacia abajo
-							this.y += this.speed;
+							//this.y += this.speed;
 
 							// Actualizar movimiento actual
-							this.actualOrientation = 'down';
+							//this.actualOrientation = 'down';
 
 							break;
 
@@ -909,17 +853,17 @@ const GF = function () {
 			else if (this.state === Ghost.SPECTACLES) {
 
 				// Moverse en x hacia home
-				if (this.x > this.homeX) { this.x -= this.speed; }
-				else if (this.x < this.homeX) { this.x += this.speed; }
+				//if (this.x > this.homeX) { this.x -= this.speed; }
+				//else if (this.x < this.homeX) { this.x += this.speed; }
 
 				// Moverse en y hacia home
-				if (this.y > this.homeY) { this.y -= this.speed; }
-				else if (this.y < this.homeY) { this.y += this.speed; }
+				//if (this.y > this.homeY) { this.y -= this.speed; }
+				//else if (this.y < this.homeY) { this.y += this.speed; }
 
 				// Si ha llegado a home, volver al estado normal
-				if (this.x == this.homeX && this.y == this.homeY) {
-					this.state = Ghost.NORMAL;
-				}
+				//if (this.x == this.homeX && this.y == this.homeY) {
+				//	this.state = Ghost.NORMAL;
+				//}
 
 			}
 
@@ -994,16 +938,18 @@ const GF = function () {
 					&& (Math.trunc(this.y / TILE_HEIGHT) === Math.trunc((this.y + TILE_HEIGHT - 1) / TILE_HEIGHT))) {
 
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(coordX, this.y, this.x + TILE_WIDTH - 10, this.y, this.id);
+						//thisLevel.checkIfHitSomething(coordX, this.y, this.x + TILE_WIDTH - 10, this.y, this.id);
 
 						// Avanza a la izquierda
-						this.x -= this.speed;
+						//this.x -= this.speed;
 
 						// Actualizar orientación actual
 						if (this.id === 2) {
-							inputStates2.actualOrientation = orientation;
+						//	inputStates2.actualOrientation = orientation;
 						}
-						else { inputStates.actualOrientation = orientation; }
+						else { 
+							//inputStates.actualOrientation = orientation; 
+						}
 						return true;
 
 				}
@@ -1021,16 +967,18 @@ const GF = function () {
 					&& (Math.trunc(this.y / TILE_HEIGHT) === Math.trunc((this.y + TILE_HEIGHT - 1) / TILE_HEIGHT))) {
 						
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(coordX, this.y, this.x + 10, this.y, this.id);
+						//thisLevel.checkIfHitSomething(coordX, this.y, this.x + 10, this.y, this.id);
 
 						// Avanza a la derecha
-						this.x += this.speed;
+						//this.x += this.speed;
 
 						// Actualizar orientación actual
 						if (this.id === 2) {
-							inputStates2.actualOrientation = orientation;
+							//inputStates2.actualOrientation = orientation;
 						}
-						else { inputStates.actualOrientation = orientation; }
+						else { 
+							//inputStates.actualOrientation = orientation; 
+						}
 						return true;
 
 				}
@@ -1048,16 +996,18 @@ const GF = function () {
 					&& (Math.trunc(this.x / TILE_WIDTH) === Math.trunc((this.x + TILE_WIDTH - 1) / TILE_WIDTH))) {
 						
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(this.x, coordY, this.x, this.y + TILE_HEIGHT - 10, this.id);
+						//thisLevel.checkIfHitSomething(this.x, coordY, this.x, this.y + TILE_HEIGHT - 10, this.id);
 
 						// Avanza hacia arriba
-						this.y -= this.speed;
+						//this.y -= this.speed;
 
 						// Actualizar orientación actual
 						if (this.id === 2) {
-							inputStates2.actualOrientation = orientation;
+						//	inputStates2.actualOrientation = orientation;
 						}
-						else { inputStates.actualOrientation = orientation; }
+						else { 
+						//	inputStates.actualOrientation = orientation; 
+						}
 						return true;
 				}
 				break;
@@ -1074,16 +1024,18 @@ const GF = function () {
 					&& (Math.trunc(this.x / TILE_WIDTH) === Math.trunc((this.x + TILE_WIDTH - 1) / TILE_WIDTH))) {
 						
 						// Comprobar si es una puerta o píldora
-						thisLevel.checkIfHitSomething(this.x, coordY, this.x, this.y + 10, this.id);
+						//thisLevel.checkIfHitSomething(this.x, coordY, this.x, this.y + 10, this.id);
 
 						// Avanza hacia abajo
-						this.y += this.speed;
+						//this.y += this.speed;
 
-						// Actualizar orientación actual (jugador 1 o 2)
+						// Actualizar orientación actual
 						if (this.id === 2) {
-							inputStates2.actualOrientation = orientation;
+						//	inputStates2.actualOrientation = orientation;
 						}
-						else { inputStates.actualOrientation = orientation; }
+						else { 
+						//	inputStates.actualOrientation = orientation; 
+						}
 						return true;
 				}
 				break;
@@ -1130,7 +1082,10 @@ const GF = function () {
 				if (!this.movePacman(inputStates.nextOrientation)){
 
 					// Sigue realizando el movimiento actual
-					this.movePacman(inputStates.actualOrientation) 					
+					this.movePacman(inputStates.actualOrientation) 
+						
+						//hit_wall.play();
+					
 					
 				}	
 			}
@@ -1145,25 +1100,20 @@ const GF = function () {
 
 					// Si el fantasma es vulnerable
 					if (ghosts[i].state === Ghost.VULNERABLE) {
-						if(multijugador){
-							enviarSonido("ghost_dead");
-						}
+
 						// Matar fantasma
-						ghosts[i].state = Ghost.SPECTACLES;
+						//ghosts[i].state = Ghost.SPECTACLES;
 
 						// Sumar 100 puntos
-						thisGame.points += 100;
+						//thisGame.points += 100;
 
-						// Si el sonido está activado en la configuración
-						if (configSFX) {
-							
-							// Resetear sonido (por si se comen 2 seguidos)
-							ghost_dead.currentTime = 0;
-
-							// Sonido del comer fantasma
-							ghost_dead.play();
+						// Sonido del comer fantasma
+						//ghost_dead.pause();
+						//ghost_dead.duration = 0;
+						if (!multijugador) {
+							//ghost_dead.currentTime = 0;
+							///ghost_dead.play();
 						}
-
 
 					}
 
@@ -1178,39 +1128,25 @@ const GF = function () {
 
 						// Si era la última vida
 						if (thisGame.lifes === 0) {
-							if(multijugador){
-								enviarSonido("game_over");
-							}
+
 							// Pausar juego
 							document.dispatchEvent(new KeyboardEvent('keydown', {'key': ' '}));
 
 							// Activas GAME OVER
 							thisGame.setMode(thisGame.GAME_OVER);
-							
-							// Si el sonido está activado en la configuración
-							if (configSFX) {
 
-								// Reproducir sonido de Game Over
-								game_over.play();
-							}
+							// Reproducir sonido de Game Over
+							//game_over.play();
 							
 						}
 						
 						else {
-							
+
 							// Reproducir sonido de pacman muerto
 							if (!multijugador) {
 								pacman_dead.currentTime = 0;
-							}else{
-								enviarSonido("pacman_dead");
 							}
-
-							// Si el sonido está activado en la configuración
-							if (configSFX) {
-
-								// Sonido de pacman muere
-								pacman_dead.play();
-							}
+							//pacman_dead.play();
 						}
 					}
 				}
@@ -1285,7 +1221,7 @@ const GF = function () {
 	}
 
 	// Cargar nivel
-	thisLevel.loadLevel(thisGame.getLevelNum());
+	//thisLevel.loadLevel(thisGame.getLevelNum());
 
 	// Obetener FPS
 	const measureFPS = function (newTime) {
@@ -1320,7 +1256,7 @@ const GF = function () {
 	// Control de efecto de las píldoras de poder
 	const updateTimers = function () {
 		
-		if(thisGame.modeTimer === 7){
+		/*if(thisGame.modeTimer === 7){
 			
 			// Poner timer a 0 (control de parpadeo de fantasmas)
 			thisGame.ghostTimer = 0;
@@ -1341,8 +1277,6 @@ const GF = function () {
 				
 			}
 			
-			// Si los fantasmas ya está asustados,
-			// si se coge otra píldora de poder, resetear el tiempo
 			if(intervalo != undefined){
 				
 				clearInterval(intervalo);
@@ -1382,7 +1316,7 @@ const GF = function () {
 		// Si el timer llega a 60, reiniciar, sino incrementar en 1
 		if (thisGame.ghostTimer === 60) {
 			thisGame.ghostTimer = 0;
-		} else { thisGame.ghostTimer++; }
+		} else { thisGame.ghostTimer++; }*/
 		
 	};
 
@@ -1393,7 +1327,7 @@ const GF = function () {
 	const mainLoop = function (time) {
 		//console.log("Multijugador: "+multijugador);
 		//console.log("en remoto: "+conexionJugadorRemoto);
-		if((multijugador && conexionJugadorRemoto) || !multijugador){
+		
 			
 				/*	
 				// Ejercicio 1
@@ -1406,66 +1340,53 @@ const GF = function () {
 				// Circulos completos (0, 2*PI) en posición random de radio 5
 				ctx.arc(Math.floor(Math.random() * (w)), Math.floor(Math.random() * (h)), 5, 0, 2 * Math.PI);
 				ctx.fill();
-				*/
+			*/
 
 			// main function, called each frame
 			measureFPS(time);
 
 			// Mover fantasmas
-			for (let i = 0; i < numGhosts; i++) {
-				ghosts[i].move();
-			}
+			/*for (let i = 0; i < numGhosts; i++) {
+				if((multijugador && isEmisor) || !multijugador){
+					ghosts[i].move();
+				}
+			}*/
+			
 
 			// Mover Pacman
-			player.move();
-			
-			// Si estamos en modo 2-player, mover pacman 2
-			if (second_player) { player2.move(); }
+			//player.move();
+			//if (second_player) { player2.move(); }
+			thisLevel.map=mapa;
+			thisGame.lifes=nVidas;
+			thisGame.mode=estadoJuego;
+			player.x=player1X;
+			player.y=player1Y;
+			inputStates.actualOrientation=player1Orientacion;
+			player2.x=player2X;
+			player2.y=player2Y;
+			inputStates2.actualOrientation=player2Orientacion;
+			thisGame.modeTimer=estadoTiempo;
+			thisGame.ghostTimer=estadoTiempoFantasmas;
+			thisGame.points=puntuacionActual;
+			thisGame.highscore=puntuacionRecord;
 
-			// Si estamos en modo online, preparar datos de la partida para compartirlos
-			if(multijugador){
-				enviarDatos(thisLevel.map, thisGame.lifes, thisGame.mode,
-					{x: player.x, y: player.y, orientacion:inputStates.actualOrientation}, 
-					{x: player2.x, y: player2.y, orientacion: inputStates2.actualOrientation},
-					{
-						0:{
-							x: ghosts[0].x,
-							y: ghosts[0].y,
-							orientacion: ghosts[0].actualOrientation,
-							estado: ghosts[0].state
-						},
-						1:{
-							x: ghosts[1].x,
-							y: ghosts[1].y,
-							orientacion: ghosts[1].actualOrientation,
-							estado: ghosts[1].state
-						},
-						2:{
-							x: ghosts[2].x,
-							y: ghosts[2].y,
-							orientacion: ghosts[2].actualOrientation,
-							estado: ghosts[2].state
-						},
-						3:{
-							x: ghosts[3].x,
-							y: ghosts[3].y,
-							orientacion: ghosts[3].actualOrientation,
-							estado: ghosts[3].state
-						}
-					},
-					thisGame.points,
-					thisGame.highscore,
-					thisGame.modeTimer,
-					thisGame.ghostTimer);
+			for(let i=0; i<4; i++){
+				ghosts[i].x=ghostsPosition[i].x;
+				ghosts[i].y=ghostsPosition[i].y;
+				ghosts[i].actualOrientation=ghostsPosition[i].orientacion;
+				ghosts[i].state=ghostsPosition[i].estado;
 			}
-			
+			thisLevel.lvlWidth=21;
+			thisLevel.lvlHeight=25;
 
-			
 			// Limpiar canvas
 			clearCanvas();
 
 			// Pintar tablero
-			thisLevel.drawMap();
+			if(thisLevel.map!=undefined){
+				thisLevel.drawMap();
+			}
+			
 
 			// Pintar fantasmas
 			for (let i = 0; i < numGhosts; i++) {
@@ -1493,7 +1414,7 @@ const GF = function () {
 			//Llamada a actualización de puntuación
 			thisLevel.displayScore();
 		
-		}
+		
 		// call the animation loop every 1/60th of second
 		requestAnimationFrame(mainLoop);
 	};
@@ -1504,12 +1425,12 @@ const GF = function () {
 
 		// Generar listener de teclas
 		document.addEventListener("keydown", (event) => {
-
+			envioDatosAHost(event.key);
 			// Si ha pulsado espacio cuando estaba en pause
 			if ((inputStates.actualOrientation === 'space' || thisGame.mode !== thisGame.NORMAL) && event.key === ' ') {
 				
 				// Si el juego ha finalizado
-				if(thisGame.mode === thisGame.GAME_OVER){
+				/*if(thisGame.mode === thisGame.GAME_OVER){
 
 					// Recargar nivel
 					thisLevel.loadLevel();
@@ -1539,18 +1460,19 @@ const GF = function () {
 					// Al quitar el pause, restaurar última acción
 					inputStates.nextOrientation = player.lastMove;
 					inputStates2.nextOrientation = player2.lastMove;
-				}
+				}*/
 
 				// Empezar a mover pacman
-				inputStates.actualOrientation = '';
+				//inputStates.actualOrientation = '';
 
 				// Empezar a mover pacman 2
-				inputStates2.actualOrientation = '';
+				//inputStates2.actualOrientation = '';
 							
 				// Empezar a mover fantasmas
-				for (let i = 0; i < numGhosts; i++) {
+				/*for (let i = 0; i < numGhosts; i++) {
 					ghosts[i].actualOrientation = '';
-				}
+				}*/
+				//envioDatosAHost(" ");
 				
 			}
 			
@@ -1561,26 +1483,33 @@ const GF = function () {
 
 					// Si se ha pulsado la tecla izquierda
 					case "ArrowLeft":
-						inputStates.nextOrientation = 'left';
+						//inputStates.nextOrientation = 'left';
+						//envioDatosAHost("ArrowLeft");
 						break;
 
 					// Si se ha pulsado la tecla derecha
 					case "ArrowRight":
-						inputStates.nextOrientation = 'right';
+						//envioDatosAHost("ArrowRight");
+						//inputStates.nextOrientation = 'right';
 						break;
 
 					// Si se ha pulsado la tecla abajo
 					case "ArrowDown":
-						inputStates.nextOrientation = 'down';
+						//envioDatosAHost("ArrowDown");
+						//inputStates.nextOrientation = 'down';
 						break;
 
 					// Si se ha pulsado la tecla arriba
 					case "ArrowUp":
-						inputStates.nextOrientation = 'up';
+						//envioDatosAHost("ArrowUp");
+						//inputStates.nextOrientation = 'up';
+						break;
+					case " ":
+						//envioDatosAHost(" ");
 						break;
 
 					// Si se ha pulsado la tecla izquierda
-					case "a":
+					/*case "a":
 						inputStates2.nextOrientation = 'left';
 						break;
 
@@ -1597,10 +1526,10 @@ const GF = function () {
 					// Si se ha pulsado la tecla arriba
 					case "w":
 						inputStates2.nextOrientation = 'up';
-						break;
+						break;*/
 
 					// Si se ha pulsado la tecla espacio
-					case " ":
+					/*case " ":
 
 						// Guardar orientación actual
 						player.lastMove = inputStates.actualOrientation;
@@ -1621,7 +1550,7 @@ const GF = function () {
 
 						console.log('Juego pausado');
 						
-						break;
+						break;*/
 				}
 			}
 
@@ -1639,7 +1568,7 @@ const GF = function () {
 	const reset = function () {
 
 		// Reiniciar fantasmas
-		for (let i = 0; i < numGhosts; i++){
+		/*for (let i = 0; i < numGhosts; i++){
 			ghosts[i].x = -1;
 			ghosts[i].y = -1;
 			ghosts[i].state = Ghost.NORMAL;
@@ -1651,13 +1580,11 @@ const GF = function () {
 			player.homeY = -100;
 		}
 
-		// Reiniciar posición del pacman 2
 		if (player2.homeY === 0 && player2.homeX === 0){
-			player2.homeX = -100;
+			player2.homeX = 100;
 			player2.homeY = -100;
 		}
 
-		// Poner pacmans en punto de salida
 		player.x = player.homeX;
 		player.y = player.homeY;
 		player2.x = player2.homeX;
@@ -1669,7 +1596,7 @@ const GF = function () {
 
 		// Pintar pacman en la casilla de inicio
 		player.draw(player.homeX, player.homeY);
-		player2.draw(player2.homeX, player2.homeY);
+		player2.draw(player2.homeX, player2.homeY);*/
 
 	};
 
@@ -1712,7 +1639,6 @@ const GF = function () {
 	};
 };
 
-// El inicio se gestiona desde menu.js
 // New Game Framework, start.
 //var game = new GF();
 //game.start();

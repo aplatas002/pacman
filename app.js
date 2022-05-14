@@ -59,6 +59,7 @@
  //let socketPlayer2 = null;
  
 const mapa = new Map();
+const socketMap = new Map();
  // the socket can be a phone or a desktop
  realtimeListener.on('connection', function (socket) {
  
@@ -79,6 +80,7 @@ const mapa = new Map();
                     sala.emisor=socket;
                     socket.emit('respuesta-conexion', 'emisor');
                     console.log("[EXCP] Asignado emisor a sala "+nomSala);
+                    sala.emisor.emit('remote-player-connect');
                 }else{
                     //Existe emisor y receptor
                     console.log("La sala está llena");
@@ -94,30 +96,75 @@ const mapa = new Map();
             console.log("Asignado emisor a sala "+nomSala);
             socket.emit('respuesta-conexion', 'emisor');
             mapa.set(nomSala,datos);
+            socketMap.set(socket, nomSala); //Indicamos el socket qué sala tiene
         }
 
-        socket.on("remote-player-move", (datos)=>{
-            let sala = mapa.get(datos.nomSala);
-            if(datos.tipoUsuario=="emisor"){
-                sala.receptor.emit("remote-player-move", datos);
-            }else if(datos.tipoUsuario=="receptor"){
-                sala.emisor.emit("remote-player-move", datos);
+        socket.on('play-sonido', (evt)=>{
+            if(evt.nomSala !=undefined && mapa.has(evt.nomSala)){
+                let sala = mapa.get(evt.nomSala);
+                sala.receptor.emit("play-sonido", evt);
             }
+            
         });
 
-        socket.on("remote-ghost-move", (datos)=>{
-            let sala = mapa.get(datos.nomSala);
-            if(sala.receptor!=undefined){
-                sala.receptor.emit("remote-ghost-move", datos);
+                
+     });
+
+
+     socket.on('disconnect', function(){
+         console.log("Alguien se desconecta");
+         console.log("Mapa de sockets tiene a este socket: "+socketMap.has(socket));
+        if(socketMap.has(socket)){
+            let nomSala = socketMap.get(socket);
+            if(mapa.has(nomSala)){
+                datosSala=mapa.get(nomSala);
+                //console.log("\tDatosSala.emisor: "+datosSala.emisor);
+                //console.log("\tDatosSala.emisor.connected: "+datosSala.emisor.connected);
+                //console.log("\tDatosSala.receptor: "+datosSala.receptor);
+                //console.log("\tDatosSala.receptor.connected: "+datosSala.receptor.connected);
+                let salaVacia = (datosSala.emisor==undefined || !datosSala.emisor.connected) && (datosSala.receptor==undefined || !datosSala.receptor.connected);
+                if(salaVacia){
+                    console.log(`La sala ${socketMap.get(socket)} está vacía`);
+                    mapa.delete(nomSala);
+                }
             }
-        });
+            socketMap.delete(socket);
+        }
+    });
+
+    socket.on("remote-player-move", (datos)=>{
+        let sala = mapa.get(datos.nomSala);
         
-     });
-     //socket.set("heartbeat timeout", 10);
-     //socket.set("heartbeat interval", 5);
-     socket.on("connect_error", ()=>{
+        if(datos.tipoUsuario=="emisor"){
+            sala.receptor.emit("remote-player-move", datos);
+        }else if(datos.tipoUsuario=="receptor"){
+            sala.emisor.emit("remote-player-move", datos);
+
+        }
+    });
+
+    
+
+    /*socket.on("remote-ghost-move", (datos)=>{
+        let sala = mapa.get(datos.nomSala);
+        if(sala.receptor!=undefined){
+            sala.receptor.emit("remote-ghost-move", datos);
+        }
+    });*/
+
+    /*socket.on("connect_error", ()=>{
         console.log("El cliente se ha desconectado");
-     });
+     });*/
+     
+
+/*    socket.on('reconnect', function(evt){
+        //Your Code Here
+        console.log("Se ha vuelto a conectar");
+        });*/
+     //io.set("heartbeat timeout", 10);
+     //io.set("heartbeat interval", 5);
+
+     
     /*socket.on("remote-player-connect", function () {
          console.log("Usuario remoto conectado");
          //desktopSocket = socket;
