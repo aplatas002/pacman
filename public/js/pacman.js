@@ -124,7 +124,7 @@ const GF = function () {
 					}
 					
 					// Si el sonido está activado en la configuración
-					if (configSFX) {
+					if (configSFX && power_pellet!=undefined) {
 
 						// Resetear por si se comen 2 píldoras seguidas
 						power_pellet.currentTime = 0;
@@ -148,7 +148,7 @@ const GF = function () {
 					}
 					
 					// Si el sonido está activado en la configuración
-					if (configSFX) {
+					if (configSFX && pellet!=undefined) {
 
 						// Resetear por si se comen 2 píldoras seguidas
 						pellet.currentTime = 0;
@@ -171,7 +171,7 @@ const GF = function () {
 					}
 					
 					// Si el sonido está activado en la configuración
-					if (configSFX) {
+					if (configSFX && finish_level!=undefined) {
 
 						// Sonido de victoria
 						finish_level.play();
@@ -675,7 +675,7 @@ const GF = function () {
 					color = ghostcolor[5]; // Color blanco
 
 					// Si el sonido está activado en la configuración
-					if (configSFX) {
+					if (configSFX && finish_vulnerable!=undefined) {
 
 						// Sonido de estado vulnerable acabándose
 						finish_vulnerable.play();
@@ -759,7 +759,7 @@ const GF = function () {
 		//------------------   Move   ------------------//
 		this.move = function () {
 
-			// Si el fantasma no está muerto ni el juega pausado
+			// Si el fantasma no está muerto ni el juego pausado
 			if (this.state !== Ghost.SPECTACLES && this.actualOrientation !== 'space') {
 
 				// Obtenemos los posibles movimientos del fantasma
@@ -1156,7 +1156,7 @@ const GF = function () {
 						thisGame.points += 100;
 
 						// Si el sonido está activado en la configuración
-						if (configSFX) {
+						if (configSFX && ghost_dead!=undefined) {
 							
 							// Resetear sonido (por si se comen 2 seguidos)
 							ghost_dead.currentTime = 0;
@@ -1189,7 +1189,7 @@ const GF = function () {
 							thisGame.setMode(thisGame.GAME_OVER);
 							
 							// Si el sonido está activado en la configuración
-							if (configSFX) {
+							if (configSFX && game_over!=undefined) {
 
 								// Reproducir sonido de Game Over
 								game_over.play();
@@ -1207,7 +1207,7 @@ const GF = function () {
 							}
 
 							// Si el sonido está activado en la configuración
-							if (configSFX) {
+							if (configSFX && pacman_dead!=undefined) {
 
 								// Sonido de pacman muere
 								pacman_dead.play();
@@ -1394,6 +1394,11 @@ const GF = function () {
 	const mainLoop = function (time) {
 		//console.log("Multijugador: "+multijugador);
 		//console.log("en remoto: "+conexionJugadorRemoto);
+		if(multijugador && !conexionJugadorRemoto){
+			clearCanvas();
+			let pantalla = new Pantalla();
+			pantalla.mostrarJuegoCargando(ctx);
+		}
 		if((multijugador && conexionJugadorRemoto) || !multijugador){
 			
 				/*	

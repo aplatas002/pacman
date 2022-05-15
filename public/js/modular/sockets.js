@@ -1,3 +1,4 @@
+//Declaración de variables globales
 const serverURL = window.location.hostname + ":" +  window.location.port;
 let socket; 
 let isEmisor=false;
@@ -22,6 +23,10 @@ let puntuacionActual;
 let puntuacionRecord;
 let estadoTiempo;
 let estadoTiempoFantasmas;
+
+/**
+ * Función que se encarga de configurar los sockets
+ */
 function setupSockets(){
     socket= io.connect(serverURL, {secure: true});
     //Función específica para el anfitrion
@@ -38,38 +43,58 @@ function setupSockets(){
         if(configSFX){
             switch(evt.efecto){
                 case "pellet":
-                    pellet.currentTime=0;
-                    pellet.play();
+                    if(pellet!=undefined){
+                        pellet.currentTime=0;
+                        pellet.play();
+                    }
                 break;
                 case "power_pellet":
-                    power_pellet.currentTime=0;
-                    power_pellet.play();
+                    if(power_pellet!=undefined){
+                        power_pellet.currentTime=0;
+                        power_pellet.play();
+                    }
                 break;
                 case "finish_vulnerable":
-                    finish_vulnerable.currentTime=0;
-                    finish_vulnerable.play();
+                    if(finish_vulnerable!=undefined){
+                        finish_vulnerable.currentTime=0;
+                        finish_vulnerable.play();    
+                    }
                 break;
                 case "ghost_dead":
-                    ghost_dead.currentTime=0;
-                    ghost_dead.play();
+                    if(ghost_dead!=undefined){
+                        ghost_dead.currentTime=0;
+                        ghost_dead.play();
+                    }
                 break;
                 case "pacman_dead":
-                    pacman_dead.currentTime=0;
-                    pacman_dead.play();
+                    if(pacman_dead!=undefined){
+                        pacman_dead.currentTime=0;
+                        pacman_dead.play();
+                    }
                 break;
                 case "game_over":
-                    game_over.currentTime=0;
-                    game_over.play();
+                    if(game_over!=undefined){
+                        game_over.currentTime=0;
+                        game_over.play();
+                    }
                 break;
                 case "finish_level":
-                    finish_level.currentTime=0;
-                    finish_level.play();
+                    if(finish_level!=undefined){
+                        finish_level.currentTime=0;
+                        finish_level.play();
+                    }
                 break;
     
             }
         }
     });
 
+    /**
+     * Dependiendo de si el usuario que recibe el mensaje es anfitrión o no,
+     * pueden suceder 2 cosas:
+     *     - Disparo de eventos que el invitado ha enviado.
+     *     - Recepción de datos para que el invitado pueda recrearlos.
+     */
     socket.on('remote-player-move', (evt)=>{
         if(evt.tipoUsuario=="receptor"){ //El usuario que ha enviado el mensaje es receptor (invitado).
             //console.log(evt);
@@ -97,8 +122,18 @@ function setupSockets(){
         }
     });
 
+    socket.on('usuario-desconectado', ()=>{
+        alert("El otro jugador se ha desconectado");
+        window.location.reload();
+    });
+
 }
 
+/**
+ * Función que permite al usuario conectar al servidor para iniciar posteriormente un juego online
+ * @param {string} nomSala Nombre de la sala
+ * 
+ */
 function conectar(nomSala){
     return new Promise((resolve)=>{
         socket.emit('remote-player-connect', nomSala);
@@ -116,7 +151,7 @@ function conectar(nomSala){
 }
 
 /*
-        Qué enviar:
+        Función que se encarga de enviar al anfitrión:
     - Mapa con sus datos actualizados
     - Número de vidas de pacman
     - Estado del juego (pausado o no)
@@ -124,6 +159,7 @@ function conectar(nomSala){
     - Posición (x,y), orientación y estado de todos y cada uno de los fantasmas
     - Puntuación actual
     - Puntuación record
+    - Timers para controlar el estado de los fantasmas cuando están asustados
 */
 function enviarDatos(mapa, numVidas, estadoJuego, datosPacmanHost, datosPacmanInvitado, datosFantasmas, puntActual, puntRecord, estadoTiempoJuego, estadoTiempoFantasmas){
     
@@ -155,7 +191,10 @@ function envioDatosAHost(teclaPulsada){
     socket.emit("remote-player-move",{nomSala: salaAsignada, tecla: teclaPulsada, tipoUsuario: "receptor"});
 }
 
-
+/**
+ * Función que dispara un evento en el teclado del anfitrión
+ * @param {*} evt Evento del teclado
+ */
 function dispararEventoTeclado(evt){
     let tecla;
     switch(evt){

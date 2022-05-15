@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
+
+	<!-- VENTANA DE CONFIGURACIÓN -->
+
     <head>
         <script src="js/modular/config.js"></script>
         <meta charset="utf-8">
+		<title>Pacman - Configuración</title>
+		<!-- Configuración de estilos -->
+
         <style>
             html, body{
 				margin: 0px;
@@ -56,7 +62,7 @@
 				flex-direction: column;
 			}
 			.contenedor{
-				margin: 20px;
+				margin: 6%;
 				background-color: #0000FF;
 				color: #FFFFFF;
 				padding: 3%;
@@ -90,15 +96,20 @@
 			<div id="menus">
 
 				<script>
+
+					// Función para hacer el container clickable
 					function onClickHandler(id){
 						
 						var cb =document.getElementById(id)
 
+						// Cambiar estado del textbox al pulsar
 						if (cb.checked) { cb.checked = false; }
 						else { cb.checked = true; }
 					
 					}
 				</script>
+
+				<!-- Contenido HTML -->
 
 				<div class="contenedor" onclick="onClickHandler('sfx')">
                     <input id="sfx" type="checkbox" class="largerCheckbox"/>

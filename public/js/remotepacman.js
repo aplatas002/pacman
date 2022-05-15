@@ -6,8 +6,9 @@ const ctx = canvas.getContext("2d");
 const w = canvas.width;
 const h = canvas.height;
 
-
+// Intervalo para gestionar el tiempo de los fantasmas asustados
 let intervalo;
+
 /*******************************************************************************
 ****                             GAME_FRAMEWORK                             ****
 *******************************************************************************/

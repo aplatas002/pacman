@@ -1,3 +1,8 @@
+/**
+ * Función que se encarga de la carga de los audios
+ * @param {string} url Url del audio
+ * @returns promesa con el audio
+ */
 function loadAudio(url){
     return new Promise((resolve)=>{
         let audio = new Audio();
@@ -7,6 +12,8 @@ function loadAudio(url){
     });
 }
 window.onload=function(){
+
+    //Carga de configuración
     configSFX = localStorage.getItem("pacman-sfx");
 	if(configSFX==undefined){
 		configSFX=true;
@@ -33,40 +40,50 @@ window.onload=function(){
     loadAudio("./res/audio/ghost_dead.wav").then( audio => ghost_dead = audio);
     
     console.log("Iniciado");
-    let contenedores = document.getElementsByClassName("contenedor");
+    //let contenedores = document.getElementsByClassName("contenedor");
+    //Eventos en los botones
     document.getElementById("jugar").addEventListener("click", jugar, true);
     document.getElementById("multijugador_local").addEventListener("click", multijugadorLocal, true);
     document.getElementById("online").addEventListener("click", function(){
         result = window.prompt("Nombre de la sala");
-        document.getElementById("menu").style="display: none";
-        var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?online=true';
-        window.history.pushState({path:newurl},'',newurl);
         
-        setupSockets();
-        conectar(result).then((evt)=>{
-            if(evt=="emisor"){
-                var s = document.createElement('script');
-                s.setAttribute('src','js/pacman.js');
-                document.head.appendChild(s);
-                s.onload=()=>{
-                    var game = new GF();
-                    game.start();
-                    document.getElementById("vuelta").classList.remove("hidden");
-                };
-                
-            }else if(evt=="receptor"){
-                var s = document.createElement('script');
-                s.setAttribute('src','js/remotepacman.js');
-                document.head.appendChild(s);
-                s.onload=()=>{
-                    var game = new GFRemote();
-                    game.start();
-                    document.getElementById("vuelta").classList.remove("hidden");
-                };
+        // Si el usuario introduce un nombre de sala
+        if (result != null){
+            document.getElementById("menu").style="display: none";
+            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?online=true';
+            window.history.pushState({path:newurl},'',newurl);
+            //Conexión mediante websockets
+            setupSockets();
+            conectar(result).then((evt)=>{
+                if(evt=="emisor"){
+                    var s = document.createElement('script');
+                    s.setAttribute('src','js/pacman.js');
+                    document.head.appendChild(s);
+                    s.onload=()=>{
+                        var game = new GF();
+                        game.start();
+                        document.getElementById("vuelta").classList.remove("hidden");
+                    };
+                    
+                }else if(evt=="receptor"){
+                    var s = document.createElement('script');
+                    s.setAttribute('src','js/remotepacman.js');
+                    document.head.appendChild(s);
+                    s.onload=()=>{
+                        var game = new GFRemote();
+                        game.start();
+                        document.getElementById("vuelta").classList.remove("hidden");
+                    };
+                }
+            });
+            if(configMusica){
+                loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
             }
-        });
-        if(configMusica){
-            loadAudio("./res/audio/fondo.mp3").then( audio => {audio.volume = 0.15; audio.play();});
+        }
+        
+        // Si pulsa cancelar
+        else {
+            window.reload();
         }
         
     },true);
@@ -77,6 +94,9 @@ window.onload=function(){
     document.getElementById("vuelta").addEventListener("click", volver, true);
 };
 
+/*
+Función que se encarga de iniciar un juego normal
+*/
 function jugar(){
     //console.log("jugar");
     //loadAudio("./res/audio/fondo.mp3").then( audio => audio.play());
@@ -97,6 +117,9 @@ function jugar(){
     
 }
 
+/**
+ * Función que se encarga de iniciar un juego en modo multijugador
+ */
 function multijugadorLocal(){
     var s = document.createElement('script');
     s.setAttribute('src','js/pacman.js');
@@ -116,6 +139,9 @@ function multijugadorLocal(){
     
 }
 
+/**
+ * Muestra la ventana de configuración al usuario
+ */
 function mostrarConfig(){
     var myWindow = window.open("config.html", "PacmanConfig", 'width=600, height=600');
     myWindow.addEventListener("beforeunload", function(e){
@@ -123,6 +149,10 @@ function mostrarConfig(){
      }, false);
 }
 
+
+/**
+ * Permite al usuario volver al menú principal siempre que quiera
+ */
 function volver(){
     window.location="index.html";
 }

@@ -1,3 +1,5 @@
+//DEPRECATED
+
 document.addEventListener("load", inicio, true);
 //let estadoMenu=undefined;
 /*let selector=undefined;
@@ -13,7 +15,9 @@ let ctx = canvas.getContext("2d");
 let w = canvas.width;
 let h = canvas.height;
 */
-
+/**
+ * 
+ */
 function inicio(){
     
    document.addEventListener("keydown", eventoTecla, true);
